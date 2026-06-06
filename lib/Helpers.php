@@ -2,32 +2,82 @@
 
 declare(strict_types=1);
 
+// ── Global error handling (must be FIRST, before any other code) ─────────
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline): bool {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok'    => false,
+        'error' => "PHP Error: {$errstr} in {$errfile}:{$errline}",
+        'code'  => 'PHP_ERROR',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+});
+
+set_exception_handler(function (Throwable $e): void {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok'    => false,
+        'error' => $e->getMessage(),
+        'code'  => 'EXCEPTION',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+});
+
+// Catch fatal errors
+register_shutdown_function(function (): void {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_COMPILE_ERROR, E_CORE_ERROR], true)) {
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        echo json_encode([
+            'ok'    => false,
+            'error' => "Fatal: {$error['message']} in {$error['file']}:{$error['line']}",
+            'code'  => 'FATAL_ERROR',
+        ], JSON_UNESCAPED_UNICODE);
+    }
+});
+
 // ── CORS ────────────────────────────────────────────────────────────────────
 function cors(): void
 {
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type');
-    header('Access-Control-Max-Age: 86400');
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    if (!headers_sent()) {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Max-Age: 86400');
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
         http_response_code(204);
         exit;
     }
 }
 
 // ── JSON response helpers ───────────────────────────────────────────────────
-function jsonOk(mixed $data, int $status = 200): never
+function jsonOk(mixed $data, int $status = 200): void
 {
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => true] + (array)$data, JSON_UNESCAPED_UNICODE);
+    if (!headers_sent()) {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    echo json_encode(array_merge(['ok' => true], (array)$data), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function jsonError(string $message, int $status = 400, ?string $code = null): never
+function jsonError(string $message, int $status = 400, ?string $code = null): void
 {
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
+    if (!headers_sent()) {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+    }
     $body = ['ok' => false, 'error' => $message];
     if ($code !== null) $body['code'] = $code;
     echo json_encode($body, JSON_UNESCAPED_UNICODE);
@@ -48,12 +98,9 @@ function env(string $key, ?string $default = null): string
 // ── Filename sanitisation ───────────────────────────────────────────────────
 function sanitizeFilename(string $name): string
 {
-    // Strip path separators and null bytes
     $name = basename($name);
     $name = str_replace(["\0", "\r", "\n"], '', $name);
-    // Keep only safe characters
     $name = preg_replace('/[^\w\-. ()\[\]]/u', '_', $name);
-    // Collapse multiple underscores/spaces
     $name = preg_replace('/[_ ]{2,}/', '_', trim($name));
     return $name ?: 'unnamed';
 }
@@ -75,6 +122,9 @@ function formatBytes(int $bytes): string
 function httpRequest(string $method, string $url, array $options = []): array
 {
     $ch = curl_init($url);
+    if ($ch === false) {
+        return ['status' => 0, 'headers' => [], 'body' => null, 'error' => 'Failed to init cURL'];
+    }
 
     curl_setopt_array($ch, [
         CURLOPT_CUSTOMREQUEST  => $method,
@@ -87,18 +137,15 @@ function httpRequest(string $method, string $url, array $options = []): array
         CURLOPT_SSL_VERIFYPEER => true,
     ]);
 
-    // Headers
     $headers = $options['headers'] ?? [];
     if (!empty($headers)) {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     }
 
-    // Body
     if (isset($options['body'])) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, $options['body']);
     }
 
-    // Form fields (for multipart/form-data POST)
     if (isset($options['form_fields'])) {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $options['form_fields']);
@@ -121,19 +168,18 @@ function httpRequest(string $method, string $url, array $options = []): array
         ];
     }
 
-    $headerStr = substr($response, 0, $headerSz);
-    $bodyStr   = substr($response, $headerSz);
+    // $response is always a string here (not false)
+    $headerStr = substr((string)$response, 0, $headerSz);
+    $bodyStr   = substr((string)$response, $headerSz);
 
-    // Parse response headers
     $respHeaders = [];
     foreach (explode("\r\n", $headerStr) as $line) {
-        if (str_contains($line, ':')) {
+        if (strpos($line, ':') !== false) {
             [$k, $v] = explode(':', $line, 2);
             $respHeaders[strtolower(trim($k))] = trim($v);
         }
     }
 
-    // Try JSON decode
     $body = $bodyStr;
     $json = json_decode($bodyStr, true);
     if ($json !== null) $body = $json;

@@ -1,12 +1,9 @@
 {
   "cleanUrls": true,
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.php" },
-    { "src": "/(.*)", "dest": "/index.html", "headers": { "Cache-Control": "public, max-age=3600" } }
-  ],
   "functions": {
-    "api/prepare-upload.php": { "runtime": "vercel-php@0.9.0", "maxDuration": 30 },
-    "api/scan.php":           { "runtime": "vercel-php@0.9.0", "maxDuration": 60 },
-    "api/health.php":         { "runtime": "vercel-php@0.9.0", "maxDuration": 10 }
+    "api/*.php": {
+      "runtime": "vercel-php@0.9.0",
+      "maxDuration": 60
+    }
   }
 }

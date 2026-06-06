@@ -2,24 +2,25 @@
 
 declare(strict_types=1);
 
+ob_start();
+
 require_once __DIR__ . '/../lib/Helpers.php';
 require_once __DIR__ . '/../lib/KoofrClient.php';
 require_once __DIR__ . '/../lib/VirusTotalClient.php';
 
-cors();
+try {
+    cors();
 
-// Only accept GET or POST
-$method = $_SERVER['REQUEST_METHOD'];
-if (!in_array($method, ['GET', 'POST'], true)) {
-    jsonError('Method not allowed', 405, 'METHOD_NOT_ALLOWED');
-}
+    $method = $_SERVER['REQUEST_METHOD'] ?? '';
+    if (!in_array($method, ['GET', 'POST'], true)) {
+        jsonError('Method not allowed', 405, 'METHOD_NOT_ALLOWED');
+    }
 
-// ── Mode 1: Poll existing analysis ────────────────────────────────────────
-$analysisId = $_GET['analysisId'] ?? '';
+    // ── Mode 1: Poll existing analysis ────────────────────────────────
+    $analysisId = $_GET['analysisId'] ?? '';
 
-if ($analysisId !== '') {
-    try {
-        $vt = new VirusTotalClient();
+    if ($analysisId !== '') {
+        $vt     = new VirusTotalClient();
         $result = $vt->getAnalysisStatus($analysisId);
 
         $response = [
@@ -39,46 +40,34 @@ if ($analysisId !== '') {
         }
 
         jsonOk($response);
-    } catch (RuntimeException $e) {
-        $status = $e->getCode() === 429 ? 429 : 502;
-        jsonError('Scan status check failed: ' . $e->getMessage(), $status, 'VT_ERROR');
     }
-}
 
-// ── Mode 2: Trigger new scan ──────────────────────────────────────────────
-if ($method !== 'POST') {
-    jsonError('Use POST to trigger a new scan, or GET with ?analysisId=... to poll', 400, 'BAD_REQUEST');
-}
+    // ── Mode 2: Trigger new scan ──────────────────────────────────────
+    if ($method !== 'POST') {
+        jsonError('Use POST to trigger scan, or GET with ?analysisId= to poll', 400, 'BAD_REQUEST');
+    }
 
-$input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $filePath = $input['file_path'] ?? '';
+    $filename = $input['filename'] ?? '';
+    $size     = (int)($input['size'] ?? 0);
 
-$filePath = $input['file_path'] ?? '';
-$filename = $input['filename'] ?? '';
-$size     = (int)($input['size'] ?? 0);
+    if ($filePath === '') {
+        jsonError('Missing required field: file_path', 400, 'MISSING_PARAM');
+    }
 
-if ($filePath === '') {
-    jsonError('Missing required field: file_path', 400, 'MISSING_PARAM');
-}
+    // VT size limit check (32 MB)
+    if ($size > 32 * 1024 * 1024) {
+        jsonOk([
+            'scan_skipped' => true,
+            'reason'       => 'File exceeds VirusTotal 32 MB limit for URL scanning.',
+            'message'      => '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。',
+        ]);
+    }
 
-// ── Check file size limit for VT (32 MB) ──────────────────────────────────
-const VT_SIZE_LIMIT = 32 * 1024 * 1024; // 32 MB
-
-if ($size > VT_SIZE_LIMIT) {
-    jsonOk([
-        'scan_skipped' => true,
-        'reason'       => 'File exceeds VirusTotal 32 MB limit for URL scanning.',
-        'message'      => '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。',
-    ]);
-}
-
-// ── Get download link and submit to VirusTotal ────────────────────────────
-try {
-    $koofr = new KoofrClient();
-
-    // Generate a temporary download link for VT to fetch
+    $koofr      = new KoofrClient();
     $downloadUrl = $koofr->getDownloadLink($filePath);
 
-    // Submit to VirusTotal
     $vt     = new VirusTotalClient();
     $result = $vt->submitUrl($downloadUrl);
 
@@ -88,7 +77,8 @@ try {
         'message'     => 'Scan submitted. Poll with ?analysisId=...',
     ]);
 
-} catch (RuntimeException $e) {
-    $status = $e->getCode() === 429 ? 429 : 502;
-    jsonError('Scan submission failed: ' . $e->getMessage(), $status, 'SCAN_ERROR');
+} catch (Throwable $e) {
+    ob_end_clean();
+    $status = ($e->getCode() === 429) ? 429 : 502;
+    jsonError('Scan failed: ' . $e->getMessage(), $status, 'SCAN_ERROR');
 }
