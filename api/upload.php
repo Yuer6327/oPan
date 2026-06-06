@@ -50,10 +50,11 @@ try {
     $koofr   = new KoofrClient();
     $folder   = '/oPan';
     $uniqId   = time() . '_' . bin2hex(random_bytes(4));
-    $destPath = "{$folder}/{$uniqId}_{$filename}";
+    $storedName = "{$uniqId}_{$filename}";
+    $destPath   = "{$folder}/{$storedName}";
 
     $koofr->ensureFolder($folder);
-    $koofr->uploadFile($destPath, $tmpPath, $filename);
+    $koofr->uploadFile($destPath, $tmpPath, $storedName);
 
     jsonOk([
         'file_path' => $destPath,
