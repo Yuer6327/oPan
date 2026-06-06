@@ -14,7 +14,7 @@
           colors: {
             surface: { 0: 'oklch(0.135 0 0)', 1: 'oklch(0.18 0 0)', 2: 'oklch(0.22 0 0)', 3: 'oklch(0.26 0 0)' },
             txt: { primary: 'oklch(0.95 0 0)', secondary: 'oklch(0.65 0 0)', muted: 'oklch(0.45 0 0)' },
-            accent: { DEFAULT: 'oklch(0.6 0.2 250)', dark: 'oklch(0.5 0.2 260)', glow: 'oklch(0.7 0.15 250)' },
+            accent: { DEFAULT: 'oklch(0.55 0 0)', dark: 'oklch(0.45 0 0)', glow: 'oklch(0.65 0 0)' },
           },
           fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Noto Sans SC"', 'sans-serif'] },
           letterSpacing: { tight: '-0.02em' },
@@ -31,10 +31,9 @@
     }
     :root { --ease: cubic-bezier(0.16, 1, 0.3, 1); }
     * { transition-timing-function: var(--ease) !important; }
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 0; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: oklch(0.3 0 0); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: oklch(0.4 0 0); }
+    ::-webkit-scrollbar-thumb { background: transparent; }
 
     .navbar {
       position: sticky; top: 0; z-index: 50; height: 64px; display: flex; align-items: center;
@@ -52,12 +51,12 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, oklch(0.6 0.2 250), oklch(0.5 0.2 260)); color: white; border: none;
+      background: oklch(0.35 0 0); color: oklch(0.95 0 0); border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
       transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px oklch(0.5 0.2 260 / 0.4); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); background: oklch(0.4 0 0); }
     .btn-primary:active { transform: translateY(0); }
 
     .btn-ghost {
@@ -71,10 +70,10 @@
       padding: clamp(32px, 6vw, 64px); text-align: center; cursor: pointer;
       transition: all 0.4s var(--ease); position: relative; overflow: hidden;
     }
-    .drop-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, oklch(0.6 0.2 250 / 0.03), transparent 70%); opacity: 0; transition: opacity 0.4s var(--ease); }
-    .drop-zone:hover, .drop-zone.drag-over { border-color: oklch(0.6 0.2 250 / 0.4); background: oklch(0.18 0 0); }
+    .drop-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(255,255,255,0.02), transparent 70%); opacity: 0; transition: opacity 0.4s var(--ease); }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: rgba(255,255,255,0.2); background: oklch(0.18 0 0); }
     .drop-zone:hover::before, .drop-zone.drag-over::before { opacity: 1; }
-    .drop-zone.drag-over { transform: scale(1.01); box-shadow: 0 0 40px oklch(0.6 0.2 250 / 0.1); }
+    .drop-zone.drag-over { transform: scale(1.01); box-shadow: 0 0 40px rgba(255,255,255,0.03); }
 
     .file-item {
       background: oklch(0.18 0 0); border: 1px solid rgba(255,255,255,0.04);
@@ -83,15 +82,15 @@
     .file-item:hover { background: oklch(0.2 0 0); border-color: rgba(255,255,255,0.08); }
 
     .progress-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
-    .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, oklch(0.6 0.2 250), oklch(0.6 0.15 280)); transition: width 0.3s var(--ease); }
-    .progress-fill.scanning { background: oklch(0.6 0.15 180); animation: progress-pulse 2s ease-in-out infinite; }
+    .progress-fill { height: 100%; border-radius: 2px; background: oklch(0.55 0 0); transition: width 0.3s var(--ease); }
+    .progress-fill.scanning { background: oklch(0.5 0 0); animation: progress-pulse 2s ease-in-out infinite; }
     @keyframes progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
     .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .badge-clean  { background: oklch(0.25 0.08 145); color: oklch(0.75 0.15 145); }
     .badge-danger { background: oklch(0.25 0.08 25);  color: oklch(0.75 0.15 25); }
     .badge-waiting{ background: rgba(255,255,255,0.05); color: oklch(0.55 0 0); }
-    .badge-scanning{ background: oklch(0.22 0.06 180); color: oklch(0.7 0.1 180); }
+    .badge-scanning{ background: oklch(0.22 0 0); color: oklch(0.65 0 0); }
     .badge-error  { background: oklch(0.25 0.05 30);  color: oklch(0.65 0.1 30); }
     .badge-skip   { background: rgba(255,255,255,0.04); color: oklch(0.5 0 0); }
 
@@ -108,19 +107,19 @@
 
     .scan-panel { background: oklch(0.16 0 0); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
     h2.section-title { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; color: oklch(0.85 0 0); padding-top: 20px; margin-top: 24px; margin-bottom: 16px; border-top: 1px dashed rgba(255,255,255,0.08); }
-    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.1); border-top-color: oklch(0.6 0.15 180); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
-    .gradient-text { background: linear-gradient(135deg, oklch(0.85 0.1 250), oklch(0.75 0.15 280), oklch(0.8 0.1 300)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.1); border-top-color: oklch(0.6 0 0); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+    .gradient-text { background: linear-gradient(135deg, oklch(0.9 0 0), oklch(0.7 0 0)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .container-app { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
-    a.vt-link { color: oklch(0.7 0.12 250); text-decoration: none; font-size: 12px; transition: color 0.3s var(--ease); }
-    a.vt-link:hover { color: oklch(0.8 0.15 250); text-decoration: underline; }
+    a.vt-link { color: oklch(0.7 0 0); text-decoration: none; font-size: 12px; transition: color 0.3s var(--ease); }
+    a.vt-link:hover { color: oklch(0.9 0 0); text-decoration: underline; }
     .empty-hint { color: oklch(0.35 0 0); font-size: 13px; text-align: center; padding: 24px; }
     .fade-in { animation: fadeIn 0.5s var(--ease) forwards; }
 
-    .icon-img  { color: oklch(0.65 0.12 200); }
-    .icon-vid  { color: oklch(0.65 0.12 300); }
-    .icon-doc  { color: oklch(0.65 0.12 250); }
-    .icon-code { color: oklch(0.7  0.15 145); }
-    .icon-zip  { color: oklch(0.65 0.1  60);  }
+    .icon-img  { color: oklch(0.6 0 0); }
+    .icon-vid  { color: oklch(0.6 0 0); }
+    .icon-doc  { color: oklch(0.6 0 0); }
+    .icon-code { color: oklch(0.6 0 0); }
+    .icon-zip  { color: oklch(0.6 0 0);  }
     .icon-default { color: oklch(0.5 0 0); }
 
     /* ── File Manager Table ───────────────────────────────────────── */
@@ -179,7 +178,7 @@
       transition: all 0.2s var(--ease); position: relative;
     }
     .checkbox-custom:checked {
-      background: oklch(0.6 0.2 250); border-color: oklch(0.6 0.2 250);
+      background: oklch(0.55 0 0); border-color: oklch(0.55 0 0);
     }
     .checkbox-custom:checked::after {
       content: '✓'; position: absolute; top: -1px; left: 2px; font-size: 11px; color: white; font-weight: 700;
@@ -193,7 +192,7 @@
 <nav class="navbar">
   <div class="container-app flex items-center justify-between w-full">
     <div class="flex items-center gap-3">
-      <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,oklch(0.6 0.2 250),oklch(0.5 0.15 300));display:flex;align-items:center;justify-content:center;">
+      <div style="width:28px;height:28px;border-radius:8px;background:oklch(0.45 0 0);display:flex;align-items:center;justify-content:center;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
       <span style="font-weight:700;font-size:18px;letter-spacing:-0.02em;">oPan</span>
@@ -293,7 +292,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeWarning()">取消</button>
-      <button class="btn-primary" style="background:linear-gradient(135deg,oklch(0.55 0.12 25),oklch(0.5 0.15 30));font-size:13px;padding:8px 20px;" onclick="confirmDownload()">无视风险，继续下载</button>
+      <button class="btn-primary" style="font-size:13px;padding:8px 20px;background:oklch(0.35 0 0);" onclick="confirmDownload()">无视风险，继续下载</button>
     </div>
   </div>
 </div>
@@ -651,7 +650,7 @@
   // ── Toast ─────────────────────────────────────────────────────────────
   function toast(message, type = 'info') {
     const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
-    const colors = { success: 'oklch(0.7 0.15 145)', error: 'oklch(0.7 0.15 25)', warning: 'oklch(0.7 0.12 60)', info: 'oklch(0.7 0.12 250)' };
+    const colors = { success: 'oklch(0.7 0.15 145)', error: 'oklch(0.7 0.15 25)', warning: 'oklch(0.7 0.12 60)', info: 'oklch(0.7 0 0)' };
     const el = document.createElement('div');
     el.className = 'toast';
     el.innerHTML = `<span style="color:${colors[type]};font-weight:700;margin-right:6px;">${icons[type]}</span>${escapeHtml(message)}`;
