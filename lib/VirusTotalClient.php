@@ -160,19 +160,18 @@ final class VirusTotalClient
                 'raw'        => $stats,
             ];
 
-            // Build permalink from the submitted URL in meta
-            $submittedUrl = $attrs['meta']['url_info']['url']
-                ?? $attrs['meta']['url']
-                ?? null;
+            // Build permalink based on scan type
+            $submittedUrl = $attrs['meta']['url_info']['url'] ?? null;
 
             if ($submittedUrl) {
+                // URL scan → /gui/url/{base64}
                 $result['report_url'] = 'https://www.virustotal.com/gui/url/' . $this->base64UrlEncode($submittedUrl);
-            }
-
-            // For file scans, build permalink from the SHA256 hash
-            $sha256 = $attrs['meta']['file_info'] ?? null;
-            if (!$submittedUrl && $sha256) {
-                $result['report_url'] = 'https://www.virustotal.com/gui/file/' . ($sha256['sha256'] ?? '');
+            } else {
+                // File scan → /gui/file/{sha256}
+                $sha256 = $attrs['meta']['file_info']['sha256'] ?? null;
+                if ($sha256) {
+                    $result['report_url'] = 'https://www.virustotal.com/gui/file/' . $sha256;
+                }
             }
         }
 
