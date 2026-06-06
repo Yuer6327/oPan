@@ -161,13 +161,18 @@ final class VirusTotalClient
             ];
 
             // Build permalink based on scan type
+            $itemLink   = $res['body']['data']['links']['item'] ?? null;
             $submittedUrl = $attrs['meta']['url_info']['url'] ?? null;
 
             if ($submittedUrl) {
                 // URL scan → /gui/url/{base64}
                 $result['report_url'] = 'https://www.virustotal.com/gui/url/' . $this->base64UrlEncode($submittedUrl);
+            } elseif ($itemLink && str_contains($itemLink, '/files/')) {
+                // File scan → extract SHA256 from links.item URL
+                $sha256 = basename($itemLink);
+                $result['report_url'] = 'https://www.virustotal.com/gui/file/' . $sha256;
             } else {
-                // File scan → /gui/file/{sha256}
+                // Fallback: try meta.file_info
                 $sha256 = $attrs['meta']['file_info']['sha256'] ?? null;
                 if ($sha256) {
                     $result['report_url'] = 'https://www.virustotal.com/gui/file/' . $sha256;

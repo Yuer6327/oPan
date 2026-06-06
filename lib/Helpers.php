@@ -139,6 +139,7 @@ function httpRequest(string $method, string $url, array $options = []): array
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS      => 3,
         CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_ENCODING       => '',  // Accept all encodings, auto-decompress gzip/deflate
     ]);
 
     $headers = $options['headers'] ?? [];
