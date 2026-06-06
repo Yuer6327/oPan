@@ -113,6 +113,93 @@ final class KoofrClient
         return $this->mountId;
     }
 
+    /**
+     * List files in a directory.
+     * Returns array of file metadata objects.
+     */
+    public function listFiles(string $path = '/oPan'): array
+    {
+        $res = $this->getJson("/api/v2/mounts/{$this->mountId}/files/list", [
+            'path' => $path,
+        ]);
+
+        if ($res['status'] < 200 || $res['status'] >= 300) {
+            return [];
+        }
+
+        $body = $res['body'];
+        return (is_array($body) && isset($body['files'])) ? $body['files'] : [];
+    }
+
+    /**
+     * Get the upload time of a file (via info endpoint).
+     * Returns modified timestamp or null.
+     */
+    public function getFileInfo(string $path): ?array
+    {
+        $res = $this->getJson("/api/v2/mounts/{$this->mountId}/files/info", [
+            'path' => $path,
+        ]);
+
+        if ($res['status'] < 200 || $res['status'] >= 300) {
+            return null;
+        }
+
+        return is_array($res['body']) ? $res['body'] : null;
+    }
+
+    /**
+     * Read the .scan-status.json file from /oPan/.
+     * Returns the parsed JSON or empty structure.
+     */
+    public function getStatusFile(): array
+    {
+        $content = $this->downloadFile('/oPan/.scan-status.json');
+        if ($content === null) {
+            return ['files' => []];
+        }
+        $data = json_decode($content, true);
+        return (is_array($data) && isset($data['files'])) ? $data : ['files' => []];
+    }
+
+    /**
+     * Write the .scan-status.json file to /oPan/.
+     */
+    public function updateStatusFile(array $statusData): void
+    {
+        $tmpFile = tempnam(sys_get_temp_dir(), 'status_');
+        file_put_contents($tmpFile, json_encode($statusData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        $url = self::BASE . "/content/api/v2/mounts/{$this->mountId}/files/put"
+             . '?path=/oPan&filename=.scan-status.json&info=true&overwrite=true';
+
+        httpRequest('POST', $url, [
+            'headers'     => ["Authorization: {$this->auth}"],
+            'form_fields' => [
+                'file' => new CURLFile($tmpFile, 'application/json', '.scan-status.json'),
+            ],
+            'timeout' => 30,
+        ]);
+
+        @unlink($tmpFile);
+    }
+
+    /**
+     * Delete a file from Koofr.
+     */
+    public function deleteFile(string $path): bool
+    {
+        $url = self::BASE . "/api/v2/mounts/{$this->mountId}/files/remove"
+             . '?path=' . rawurlencode($path);
+
+        $res = httpRequest('DELETE', $url, [
+            'headers' => ["Authorization: {$this->auth}"],
+            'timeout' => 15,
+        ]);
+
+        return $res['status'] >= 200 && $res['status'] < 300;
+    }
+
     // ── Private helpers ─────────────────────────────────────────────────
 
     private function resolveDefaultMount(): string

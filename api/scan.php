@@ -20,8 +20,9 @@ try {
     $analysisId = $_GET['analysisId'] ?? '';
 
     if ($analysisId !== '') {
-        $vt     = new VirusTotalClient();
-        $result = $vt->getAnalysisStatus($analysisId);
+        $filePath = $_GET['file_path'] ?? '';
+        $vt       = new VirusTotalClient();
+        $result   = $vt->getAnalysisStatus($analysisId);
 
         $response = [
             'status'      => $result['status'],
@@ -30,13 +31,32 @@ try {
 
         if ($result['is_complete'] && $result['stats']) {
             $s = $result['stats'];
+            $isClean = $s['malicious'] === 0;
             $response['scan_result'] = [
                 'malicious'  => $s['malicious'],
                 'undetected' => $s['undetected'],
                 'total'      => $s['total'],
-                'is_clean'   => $s['malicious'] === 0,
+                'is_clean'   => $isClean,
                 'report_url' => $result['report_url'],
             ];
+
+            // Update status file if file_path provided
+            if ($filePath !== '') {
+                try {
+                    $koofr = new KoofrClient();
+                    $statusData = $koofr->getStatusFile();
+                    $statusData['files'][$filePath] = [
+                        'status'     => $isClean ? 'clean' : 'danger',
+                        'malicious'  => $s['malicious'],
+                        'total'      => $s['total'],
+                        'report_url' => $result['report_url'],
+                        'scan_time'  => date('c'),
+                    ];
+                    $koofr->updateStatusFile($statusData);
+                } catch (Throwable) {
+                    // Non-fatal
+                }
+            }
         }
 
         jsonOk($response);
@@ -58,6 +78,21 @@ try {
 
     // VT file upload size limit (32 MB for free accounts)
     if ($size > 32 * 1024 * 1024) {
+        // Update status: skipped (no scan possible)
+        try {
+            $koofr = new KoofrClient();
+            $statusData = $koofr->getStatusFile();
+            $statusData['files'][$filePath] = [
+                'status'     => 'error',
+                'malicious'  => 0,
+                'total'      => 0,
+                'report_url' => null,
+                'scan_time'  => date('c'),
+                'error'      => 'File exceeds 32MB VT limit',
+            ];
+            $koofr->updateStatusFile($statusData);
+        } catch (Throwable) {}
+
         jsonOk([
             'scan_skipped' => true,
             'reason'       => 'File exceeds VirusTotal 32 MB limit.',
@@ -70,6 +105,20 @@ try {
     $fileContent = $koofr->downloadFile($filePath);
 
     if ($fileContent === null) {
+        // Mark as error
+        try {
+            $statusData = $koofr->getStatusFile();
+            $statusData['files'][$filePath] = [
+                'status'     => 'error',
+                'malicious'  => 0,
+                'total'      => 0,
+                'report_url' => null,
+                'scan_time'  => date('c'),
+                'error'      => 'Failed to download for scanning',
+            ];
+            $koofr->updateStatusFile($statusData);
+        } catch (Throwable) {}
+
         jsonError('Failed to download file from storage for scanning', 502, 'DOWNLOAD_FAILED');
     }
 
@@ -79,6 +128,7 @@ try {
     jsonOk([
         'analysis_id' => $result['analysis_id'],
         'status_url'  => $result['status_url'],
+        'file_path'   => $filePath,
         'message'     => 'Scan submitted. Poll with ?analysisId=...',
     ]);
 

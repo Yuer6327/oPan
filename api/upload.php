@@ -56,6 +56,21 @@ try {
     $koofr->ensureFolder($folder);
     $koofr->uploadFile($destPath, $tmpPath, $storedName);
 
+    // Mark file as "scanning" in status file
+    try {
+        $statusData = $koofr->getStatusFile();
+        $statusData['files'][$destPath] = [
+            'status'     => 'scanning',
+            'malicious'  => 0,
+            'total'      => 0,
+            'report_url' => null,
+            'scan_time'  => date('c'),
+        ];
+        $koofr->updateStatusFile($statusData);
+    } catch (Throwable) {
+        // Non-fatal: upload succeeded even if status update failed
+    }
+
     jsonOk([
         'file_path' => $destPath,
         'filename'  => $filename,

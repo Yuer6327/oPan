@@ -6,364 +6,190 @@
   <title>oPan | 自由开放的网盘</title>
   <link rel="icon" href="https://blog.yuer6327.top/favicon/gravatar.png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            surface: {
-              0: 'oklch(0.135 0 0)',
-              1: 'oklch(0.18 0 0)',
-              2: 'oklch(0.22 0 0)',
-              3: 'oklch(0.26 0 0)',
-            },
-            txt: {
-              primary: 'oklch(0.95 0 0)',
-              secondary: 'oklch(0.65 0 0)',
-              muted: 'oklch(0.45 0 0)',
-            },
-            accent: {
-              DEFAULT: 'oklch(0.6 0.2 250)',
-              dark: 'oklch(0.5 0.2 260)',
-              glow: 'oklch(0.7 0.15 250)',
-            },
+            surface: { 0: 'oklch(0.135 0 0)', 1: 'oklch(0.18 0 0)', 2: 'oklch(0.22 0 0)', 3: 'oklch(0.26 0 0)' },
+            txt: { primary: 'oklch(0.95 0 0)', secondary: 'oklch(0.65 0 0)', muted: 'oklch(0.45 0 0)' },
+            accent: { DEFAULT: 'oklch(0.6 0.2 250)', dark: 'oklch(0.5 0.2 260)', glow: 'oklch(0.7 0.15 250)' },
           },
-          fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Noto Sans SC"', 'sans-serif'],
-          },
-          letterSpacing: {
-            tight: '-0.02em',
-          },
+          fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Noto Sans SC"', 'sans-serif'] },
+          letterSpacing: { tight: '-0.02em' },
         },
       },
     };
   </script>
   <style>
-    /* ── Base & Reset ──────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; }
-
     body {
-      margin: 0;
-      background: oklch(0.135 0 0);
-      color: oklch(0.95 0 0);
+      margin: 0; background: oklch(0.135 0 0); color: oklch(0.95 0 0);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
-      line-height: 1.85;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      min-height: 100vh;
+      line-height: 1.85; -webkit-font-smoothing: antialiased; min-height: 100vh;
     }
-
-    /* ── Custom easing ─────────────────────────────────────────────── */
     :root { --ease: cubic-bezier(0.16, 1, 0.3, 1); }
     * { transition-timing-function: var(--ease) !important; }
-
-    /* ── Scrollbar ─────────────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb {
-      background: oklch(0.3 0 0);
-      border-radius: 3px;
-    }
+    ::-webkit-scrollbar-thumb { background: oklch(0.3 0 0); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: oklch(0.4 0 0); }
 
-    /* ── Navbar ────────────────────────────────────────────────────── */
     .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      padding: 0 clamp(16px, 4vw, 32px);
-      background: oklch(0.135 0 0);
-      border-bottom: 1px solid transparent;
-      background-clip: padding-box;
-      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 50; height: 64px; display: flex; align-items: center;
+      padding: 0 clamp(16px, 4vw, 32px); background: oklch(0.135 0 0);
+      border-bottom: 1px solid transparent; background-clip: padding-box; backdrop-filter: blur(12px);
     }
     .navbar::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 0;
-      right: 0;
-      height: 1px;
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 80%, transparent);
     }
 
-    /* ── Cards ─────────────────────────────────────────────────────── */
     .card {
-      background: oklch(0.18 0 0);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      background: oklch(0.18 0 0); border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
 
-    /* ── Buttons ───────────────────────────────────────────────────── */
     .btn-primary {
-      background: linear-gradient(135deg, oklch(0.6 0.2 250), oklch(0.5 0.2 260));
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 24px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
+      background: linear-gradient(135deg, oklch(0.6 0.2 250), oklch(0.5 0.2 260)); color: white; border: none;
+      border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
       transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
       box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
     }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px oklch(0.5 0.2 260 / 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
-    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px oklch(0.5 0.2 260 / 0.4); }
     .btn-primary:active { transform: translateY(0); }
 
     .btn-ghost {
-      background: transparent;
-      color: oklch(0.65 0 0);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.3s var(--ease);
+      background: transparent; color: oklch(0.65 0 0); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; transition: all 0.3s var(--ease);
     }
-    .btn-ghost:hover {
-      background: oklch(0.22 0 0);
-      color: oklch(0.95 0 0);
-      border-color: rgba(255,255,255,0.1);
-    }
+    .btn-ghost:hover { background: oklch(0.22 0 0); color: oklch(0.95 0 0); border-color: rgba(255,255,255,0.1); }
 
-    /* ── Upload Drop Zone ──────────────────────────────────────────── */
     .drop-zone {
-      border: 2px dashed rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: clamp(32px, 6vw, 64px);
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.4s var(--ease);
-      position: relative;
-      overflow: hidden;
+      border: 2px dashed rgba(255,255,255,0.08); border-radius: 16px;
+      padding: clamp(32px, 6vw, 64px); text-align: center; cursor: pointer;
+      transition: all 0.4s var(--ease); position: relative; overflow: hidden;
     }
-    .drop-zone::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, oklch(0.6 0.2 250 / 0.03), transparent 70%);
-      opacity: 0;
-      transition: opacity 0.4s var(--ease);
-    }
-    .drop-zone:hover,
-    .drop-zone.drag-over {
-      border-color: oklch(0.6 0.2 250 / 0.4);
-      background: oklch(0.18 0 0);
-    }
-    .drop-zone:hover::before,
-    .drop-zone.drag-over::before { opacity: 1; }
-    .drop-zone.drag-over {
-      transform: scale(1.01);
-      box-shadow: 0 0 40px oklch(0.6 0.2 250 / 0.1);
-    }
+    .drop-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, oklch(0.6 0.2 250 / 0.03), transparent 70%); opacity: 0; transition: opacity 0.4s var(--ease); }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: oklch(0.6 0.2 250 / 0.4); background: oklch(0.18 0 0); }
+    .drop-zone:hover::before, .drop-zone.drag-over::before { opacity: 1; }
+    .drop-zone.drag-over { transform: scale(1.01); box-shadow: 0 0 40px oklch(0.6 0.2 250 / 0.1); }
 
-    /* ── File item ─────────────────────────────────────────────────── */
     .file-item {
-      background: oklch(0.18 0 0);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 10px;
-      padding: 16px 20px;
-      transition: all 0.3s var(--ease);
-      animation: slideUp 0.4s var(--ease) backwards;
+      background: oklch(0.18 0 0); border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 10px; padding: 16px 20px; transition: all 0.3s var(--ease); animation: slideUp 0.4s var(--ease) backwards;
     }
-    .file-item:hover {
-      background: oklch(0.2 0 0);
-      border-color: rgba(255,255,255,0.08);
-    }
+    .file-item:hover { background: oklch(0.2 0 0); border-color: rgba(255,255,255,0.08); }
 
-    /* ── Progress bar ──────────────────────────────────────────────── */
-    .progress-track {
-      height: 4px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      border-radius: 2px;
-      background: linear-gradient(90deg, oklch(0.6 0.2 250), oklch(0.6 0.15 280));
-      transition: width 0.3s var(--ease);
-      position: relative;
-    }
-    .progress-fill.scanning {
-      background: oklch(0.6 0.15 180);
-      animation: progress-pulse 2s ease-in-out infinite;
-    }
-    @keyframes progress-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
+    .progress-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, oklch(0.6 0.2 250), oklch(0.6 0.15 280)); transition: width 0.3s var(--ease); }
+    .progress-fill.scanning { background: oklch(0.6 0.15 180); animation: progress-pulse 2s ease-in-out infinite; }
+    @keyframes progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-    /* ── Status badges ─────────────────────────────────────────────── */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-    }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .badge-clean  { background: oklch(0.25 0.08 145); color: oklch(0.75 0.15 145); }
-    .badge-danger { background: oklch(0.25 0.08 25);  color: oklch(0.75 0.15 25);  }
+    .badge-danger { background: oklch(0.25 0.08 25);  color: oklch(0.75 0.15 25); }
     .badge-waiting{ background: rgba(255,255,255,0.05); color: oklch(0.55 0 0); }
     .badge-scanning{ background: oklch(0.22 0.06 180); color: oklch(0.7 0.1 180); }
     .badge-error  { background: oklch(0.25 0.05 30);  color: oklch(0.65 0.1 30); }
     .badge-skip   { background: rgba(255,255,255,0.04); color: oklch(0.5 0 0); }
 
-    /* ── Toast ─────────────────────────────────────────────────────── */
-    .toast-container {
-      position: fixed;
-      top: 80px;
-      right: clamp(16px, 3vw, 24px);
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-    .toast {
-      pointer-events: auto;
-      background: oklch(0.22 0 0);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 10px;
-      padding: 12px 18px;
-      font-size: 13px;
-      color: oklch(0.9 0 0);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-      animation: toastIn 0.4s var(--ease) forwards;
-      max-width: 360px;
-      backdrop-filter: blur(12px);
-    }
+    .toast-container { position: fixed; top: 80px; right: clamp(16px, 3vw, 24px); z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { pointer-events: auto; background: oklch(0.22 0 0); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 18px; font-size: 13px; color: oklch(0.9 0 0); box-shadow: 0 8px 30px rgba(0,0,0,0.4); animation: toastIn 0.4s var(--ease) forwards; max-width: 360px; backdrop-filter: blur(12px); }
     .toast.removing { animation: toastOut 0.3s var(--ease) forwards; }
 
-    /* ── Keyframes ─────────────────────────────────────────────────── */
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateX(40px) scale(0.95); }
-      to   { opacity: 1; transform: translateX(0) scale(1); }
-    }
-    @keyframes toastOut {
-      from { opacity: 1; transform: translateX(0); }
-      to   { opacity: 0; transform: translateX(40px); }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-    @keyframes heroGlow {
-      0%, 100% { opacity: 0.5; }
-      50%      { opacity: 1; }
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-    /* ── Scan result panel ─────────────────────────────────────────── */
-    .scan-panel {
-      background: oklch(0.16 0 0);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-top: 10px;
-    }
-
-    /* ── H2 dashed separator ───────────────────────────────────────── */
-    h2.section-title {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      color: oklch(0.85 0 0);
-      padding-top: 20px;
-      margin-top: 24px;
-      margin-bottom: 16px;
-      border-top: 1px dashed rgba(255,255,255,0.08);
-    }
-
-    /* ── Spinner ───────────────────────────────────────────────────── */
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.1);
-      border-top-color: oklch(0.6 0.15 180);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      display: inline-block;
-    }
-
-    /* ── Hero gradient text ────────────────────────────────────────── */
-    .gradient-text {
-      background: linear-gradient(135deg, oklch(0.85 0.1 250), oklch(0.75 0.15 280), oklch(0.8 0.1 300));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* ── Responsive container ──────────────────────────────────────── */
-    .container-app {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 clamp(16px, 4vw, 32px);
-    }
-
-    /* ── Anim stagger ──────────────────────────────────────────────── */
-    .file-item:nth-child(1) { animation-delay: 0.0s; }
-    .file-item:nth-child(2) { animation-delay: 0.05s; }
-    .file-item:nth-child(3) { animation-delay: 0.1s; }
-    .file-item:nth-child(4) { animation-delay: 0.15s; }
-    .file-item:nth-child(5) { animation-delay: 0.2s; }
-
-    /* ── Link style ────────────────────────────────────────────────── */
-    a.vt-link {
-      color: oklch(0.7 0.12 250);
-      text-decoration: none;
-      font-size: 12px;
-      transition: color 0.3s var(--ease);
-    }
-    a.vt-link:hover {
-      color: oklch(0.8 0.15 250);
-      text-decoration: underline;
-    }
-
-    /* ── Empty state ───────────────────────────────────────────────── */
-    .empty-hint {
-      color: oklch(0.35 0 0);
-      font-size: 13px;
-      text-align: center;
-      padding: 24px;
-    }
-
-    /* ── Fade-in utility ───────────────────────────────────────────── */
+    .scan-panel { background: oklch(0.16 0 0); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
+    h2.section-title { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; color: oklch(0.85 0 0); padding-top: 20px; margin-top: 24px; margin-bottom: 16px; border-top: 1px dashed rgba(255,255,255,0.08); }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.1); border-top-color: oklch(0.6 0.15 180); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+    .gradient-text { background: linear-gradient(135deg, oklch(0.85 0.1 250), oklch(0.75 0.15 280), oklch(0.8 0.1 300)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .container-app { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
+    a.vt-link { color: oklch(0.7 0.12 250); text-decoration: none; font-size: 12px; transition: color 0.3s var(--ease); }
+    a.vt-link:hover { color: oklch(0.8 0.15 250); text-decoration: underline; }
+    .empty-hint { color: oklch(0.35 0 0); font-size: 13px; text-align: center; padding: 24px; }
     .fade-in { animation: fadeIn 0.5s var(--ease) forwards; }
 
-    /* ── File icon colors by extension ─────────────────────────────── */
     .icon-img  { color: oklch(0.65 0.12 200); }
     .icon-vid  { color: oklch(0.65 0.12 300); }
     .icon-doc  { color: oklch(0.65 0.12 250); }
     .icon-code { color: oklch(0.7  0.15 145); }
     .icon-zip  { color: oklch(0.65 0.1  60);  }
     .icon-default { color: oklch(0.5 0 0); }
+
+    /* ── File Manager Table ───────────────────────────────────────── */
+    .fm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .fm-table th {
+      text-align: left; padding: 10px 12px; font-weight: 600; font-size: 12px;
+      color: oklch(0.5 0 0); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .fm-table th:last-child, .fm-table td:last-child { text-align: right; }
+    .fm-table td {
+      padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle; color: oklch(0.85 0 0);
+    }
+    .fm-table tr { transition: background 0.2s var(--ease); }
+    .fm-table tbody tr:hover { background: oklch(0.2 0 0); }
+    .fm-table .col-check { width: 40px; text-align: center; }
+    .fm-table .col-name { min-width: 200px; }
+    .fm-table .col-size { width: 90px; color: oklch(0.5 0 0); font-size: 12px; }
+    .fm-table .col-time { width: 140px; color: oklch(0.5 0 0); font-size: 12px; }
+    .fm-table .col-status { width: 110px; }
+    .fm-table .col-actions { width: 200px; white-space: nowrap; }
+    .fm-filename { display: flex; align-items: center; gap: 8px; }
+    .fm-filename span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+
+    .btn-sm { background: transparent; border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: oklch(0.6 0 0); transition: all 0.2s var(--ease); display: inline-flex; align-items: center; gap: 4px; }
+    .btn-sm:hover { background: oklch(0.25 0 0); color: oklch(0.9 0 0); border-color: rgba(255,255,255,0.12); }
+
+    /* ── Modals ───────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: oklch(0.18 0 0); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      animation: modalIn 0.3s var(--ease) forwards; max-width: 90vw; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-weight: 600; font-size: 14px; color: oklch(0.9 0 0);
+    }
+    .modal-close { background: none; border: none; color: oklch(0.5 0 0); cursor: pointer; font-size: 20px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
+    .modal-close:hover { background: oklch(0.25 0 0); color: oklch(0.9 0 0); }
+    .modal-body { padding: 20px; overflow: auto; flex: 1; }
+    .modal-body img { max-width: 100%; max-height: 70vh; border-radius: 8px; object-fit: contain; display: block; margin: 0 auto; }
+    .modal-body pre { background: oklch(0.135 0 0); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.6; overflow: auto; max-height: 65vh; color: oklch(0.85 0 0); white-space: pre-wrap; word-break: break-all; }
+    .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+
+    .checkbox-custom {
+      width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid rgba(255,255,255,0.15);
+      background: transparent; cursor: pointer; appearance: none; -webkit-appearance: none;
+      transition: all 0.2s var(--ease); position: relative;
+    }
+    .checkbox-custom:checked {
+      background: oklch(0.6 0.2 250); border-color: oklch(0.6 0.2 250);
+    }
+    .checkbox-custom:checked::after {
+      content: '✓'; position: absolute; top: -1px; left: 2px; font-size: 11px; color: white; font-weight: 700;
+    }
+    .checkbox-custom:hover { border-color: rgba(255,255,255,0.3); }
   </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     NAVBAR
-     ═══════════════════════════════════════════════════════════════════ -->
+<!-- NAVBAR -->
 <nav class="navbar">
   <div class="container-app flex items-center justify-between w-full">
     <div class="flex items-center gap-3">
@@ -375,19 +201,17 @@
     </div>
     <div class="flex items-center gap-3">
       <span id="status-dot" style="width:8px;height:8px;border-radius:50%;background:oklch(0.5 0 0);" title="检查中..."></span>
-      <a href="https://github.com" target="_blank" style="color:oklch(0.5 0 0);transition:color 0.3s;" onmouseover="this.style.color='oklch(0.8 0 0)'" onmouseout="this.style.color='oklch(0.5 0 0)'">
+      <a href="https://github.com/Yuer6327/oPan" target="_blank" style="color:oklch(0.5 0 0);transition:color 0.3s;" onmouseover="this.style.color='oklch(0.8 0 0)'" onmouseout="this.style.color='oklch(0.5 0 0)'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
       </a>
     </div>
   </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     MAIN CONTENT
-     ═══════════════════════════════════════════════════════════════════ -->
+<!-- MAIN -->
 <main class="container-app" style="padding-top:40px;padding-bottom:80px;">
 
-  <!-- Hero Section -->
+  <!-- Hero -->
   <section class="fade-in" style="text-align:center;margin-bottom:48px;">
     <h1 style="font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-0.03em;line-height:1.2;margin:0 0 12px;">
       <span class="gradient-text">自由开放的网盘</span>
@@ -403,566 +227,445 @@
       <input type="file" id="fileInput" multiple style="display:none;">
       <div style="position:relative;z-index:1;">
         <div style="margin-bottom:16px;">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0 0)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0 0)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
-        <p style="font-size:16px;font-weight:600;color:oklch(0.85 0 0);margin:0 0 6px;">
-          拖拽文件到此处，或点击选择
-        </p>
-        <p style="font-size:13px;color:oklch(0.4 0 0);margin:0;">
-          支持任意类型文件 · ≤32MB 自动病毒扫描
-        </p>
+        <p style="font-size:16px;font-weight:600;color:oklch(0.85 0 0);margin:0 0 6px;">拖拽文件到此处，或点击选择</p>
+        <p style="font-size:13px;color:oklch(0.4 0 0);margin:0;">支持任意类型文件 · ≤32MB 自动病毒扫描</p>
       </div>
     </div>
   </section>
 
-  <!-- File List Section -->
+  <!-- Upload Progress (shown during active uploads) -->
   <section id="fileListSection" style="display:none;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 class="section-title" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:0;">
-        上传文件 <span id="fileCount" style="font-weight:400;color:oklch(0.45 0 0);font-size:14px;"></span>
-      </h2>
-      <button class="btn-ghost" id="clearBtn" style="font-size:12px;padding:6px 12px;">
-        清空列表
-      </button>
+      <h2 class="section-title" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:0;">上传中 <span id="fileCount" style="font-weight:400;color:oklch(0.45 0 0);font-size:14px;"></span></h2>
+      <button class="btn-ghost" id="clearBtn" style="font-size:12px;padding:6px 12px;">清空列表</button>
     </div>
     <div id="fileList" style="display:flex;flex-direction:column;gap:8px;"></div>
   </section>
 
-  <!-- Empty state (when section is visible but no files) -->
-  <div id="emptyState" class="empty-hint" style="display:none;">
-    还没有上传任何文件
-  </div>
+  <!-- File Manager -->
+  <section id="fileManagerSection" class="fade-in" style="display:none;">
+    <h2 class="section-title">全部文件 <span id="fmCount" style="font-weight:400;color:oklch(0.45 0 0);font-size:14px;"></span></h2>
+    <div class="card" style="overflow-x:auto;">
+      <table class="fm-table">
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" class="checkbox-custom" id="fmSelectAll"></th>
+            <th class="col-name">文件名</th>
+            <th class="col-size">大小</th>
+            <th class="col-time">上传时间</th>
+            <th class="col-status">状态</th>
+            <th class="col-actions">操作</th>
+          </tr>
+        </thead>
+        <tbody id="fmBody"></tbody>
+      </table>
+    </div>
+    <div id="fmEmpty" class="empty-hint" style="display:none;">还没有上传任何文件</div>
+  </section>
 
 </main>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     FOOTER
-     ═══════════════════════════════════════════════════════════════════ -->
+<!-- Preview Modal -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-box" style="width:800px;">
+    <div class="modal-header">
+      <span id="previewTitle">预览</span>
+      <button class="modal-close" onclick="closePreview()">✕</button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+  </div>
+</div>
+
+<!-- Warning Modal (download unsafe file) -->
+<div class="modal-overlay" id="warningModal">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-header">
+      <span style="color:oklch(0.7 0.12 60);">⚠ 安全警告</span>
+      <button class="modal-close" onclick="closeWarning()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="warningText" style="margin:0;color:oklch(0.8 0 0);font-size:14px;line-height:1.7;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeWarning()">取消</button>
+      <button class="btn-primary" style="background:linear-gradient(135deg,oklch(0.55 0.12 25),oklch(0.5 0.15 30));font-size:13px;padding:8px 20px;" onclick="confirmDownload()">无视风险，继续下载</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
 <footer style="text-align:center;padding:32px 16px;color:oklch(0.3 0 0);font-size:12px;border-top:1px solid rgba(255,255,255,0.04);">
   oPan — 自由开放的网盘 · Powered by Koofr & VirusTotal
 </footer>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     JAVASCRIPT
-     ═══════════════════════════════════════════════════════════════════ -->
 <script>
 (() => {
   'use strict';
 
-  // ── Constants ─────────────────────────────────────────────────────────
   const VT_SIZE_LIMIT = 32 * 1024 * 1024;
-  const POLL_INTERVAL_INITIAL = 5000;   // 5s first poll
-  const POLL_INTERVAL_STEADY  = 15000;  // 15s subsequent
-  const POLL_MAX_ATTEMPTS     = 40;     // ~10 min max
+  const POLL_INTERVAL_INITIAL = 5000;
+  const POLL_INTERVAL_STEADY  = 15000;
+  const POLL_MAX_ATTEMPTS     = 40;
   const MAX_CONCURRENT_UPLOADS = 3;
-  const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-  // ── State ─────────────────────────────────────────────────────────────
-  const files = new Map(); // id -> { file, id, status, progress, ... }
+  const files = new Map();
   let activeUploads = 0;
+  let pendingDownloadPath = null;
+  let fmFiles = []; // server-side file list
 
-  // ── DOM refs ──────────────────────────────────────────────────────────
   const $dropZone   = document.getElementById('dropZone');
   const $fileInput  = document.getElementById('fileInput');
   const $fileList   = document.getElementById('fileList');
   const $section    = document.getElementById('fileListSection');
-  const $emptyState = document.getElementById('emptyState');
   const $fileCount  = document.getElementById('fileCount');
   const $clearBtn   = document.getElementById('clearBtn');
   const $toasts     = document.getElementById('toastContainer');
   const $statusDot  = document.getElementById('status-dot');
+  const $fmSection  = document.getElementById('fileManagerSection');
+  const $fmBody     = document.getElementById('fmBody');
+  const $fmCount    = document.getElementById('fmCount');
+  const $fmEmpty    = document.getElementById('fmEmpty');
+  const $previewModal = document.getElementById('previewModal');
+  const $previewTitle = document.getElementById('previewTitle');
+  const $previewBody  = document.getElementById('previewBody');
+  const $warningModal = document.getElementById('warningModal');
+  const $warningText  = document.getElementById('warningText');
+  const $fmSelectAll  = document.getElementById('fmSelectAll');
 
   // ── Health check ──────────────────────────────────────────────────────
   (async () => {
     try {
       const r = await fetch('/api/health');
       const d = await r.json();
-      if (d.ok && d.status === 'healthy') {
-        $statusDot.style.background = 'oklch(0.7 0.15 145)';
-        $statusDot.title = '服务正常';
-      } else {
-        $statusDot.style.background = 'oklch(0.65 0.12 60)';
-        $statusDot.title = '部分配置缺失';
-      }
-    } catch {
-      $statusDot.style.background = 'oklch(0.6 0.15 25)';
-      $statusDot.title = '无法连接服务';
-    }
+      if (d.ok && d.status === 'healthy') { $statusDot.style.background = 'oklch(0.7 0.15 145)'; $statusDot.title = '服务正常'; }
+      else { $statusDot.style.background = 'oklch(0.65 0.12 60)'; $statusDot.title = '部分配置缺失'; }
+    } catch { $statusDot.style.background = 'oklch(0.6 0.15 25)'; $statusDot.title = '无法连接服务'; }
+    loadFileList();
   })();
 
   // ── Drop zone events ──────────────────────────────────────────────────
   $dropZone.addEventListener('click', () => $fileInput.click());
+  ['dragenter', 'dragover'].forEach(evt => $dropZone.addEventListener(evt, e => { e.preventDefault(); $dropZone.classList.add('drag-over'); }));
+  ['dragleave', 'drop'].forEach(evt => $dropZone.addEventListener(evt, e => { e.preventDefault(); $dropZone.classList.remove('drag-over'); }));
+  $dropZone.addEventListener('drop', e => { addFiles([...e.dataTransfer.files]); });
+  $fileInput.addEventListener('change', () => { addFiles([...$fileInput.files]); $fileInput.value = ''; });
+  $clearBtn.addEventListener('click', () => { files.clear(); renderFileList(); toast('列表已清空', 'info'); });
 
-  ['dragenter', 'dragover'].forEach(evt =>
-    $dropZone.addEventListener(evt, e => {
-      e.preventDefault();
-      $dropZone.classList.add('drag-over');
-    })
-  );
-
-  ['dragleave', 'drop'].forEach(evt =>
-    $dropZone.addEventListener(evt, e => {
-      e.preventDefault();
-      $dropZone.classList.remove('drag-over');
-    })
-  );
-
-  $dropZone.addEventListener('drop', e => {
-    const droppedFiles = [...e.dataTransfer.files];
-    addFiles(droppedFiles);
+  // Select all checkbox
+  $fmSelectAll?.addEventListener('change', () => {
+    document.querySelectorAll('.fm-row-check').forEach(cb => cb.checked = $fmSelectAll.checked);
   });
 
-  $fileInput.addEventListener('change', () => {
-    addFiles([...$fileInput.files]);
-    $fileInput.value = '';
-  });
+  // Close modals on overlay click
+  $previewModal.addEventListener('click', e => { if (e.target === $previewModal) closePreview(); });
+  $warningModal.addEventListener('click', e => { if (e.target === $warningModal) closeWarning(); });
 
-  $clearBtn.addEventListener('click', () => {
-    files.clear();
-    renderFileList();
-    toast('列表已清空', 'info');
-  });
-
-  // ── File management ───────────────────────────────────────────────────
-  function addFiles(fileArray) {
-    if (!fileArray.length) return;
-
-    const maxSize = 10 * 1024 * 1024 * 1024; // 10 GB
-    let added = 0;
-
-    for (const f of fileArray) {
-      if (f.size > maxSize) {
-        toast(`"${truncate(f.name, 28)}" 过大（最大 10GB）`, 'error');
-        continue;
-      }
-      const id = crypto.randomUUID();
-      files.set(id, {
-        id,
-        file: f,
-        name: f.name,
-        size: f.size,
-        status: 'waiting',     // waiting | preparing | uploading | scanning | clean | danger | error | skipped
-        progress: 0,
-        scanResult: null,
-        analysisId: null,
-        filePath: null,
-        uploadUrl: null,
-        message: '',
-      });
-      added++;
-    }
-
-    if (added > 0) {
-      toast(`已添加 ${added} 个文件`, 'success');
-      renderFileList();
-      processQueue();
+  // ── File Manager: Load file list ──────────────────────────────────────
+  async function loadFileList() {
+    try {
+      const r = await fetch('/api/files');
+      const d = await r.json();
+      if (!r.ok || !d.ok) return;
+      fmFiles = d.files || [];
+      renderFileManager();
+    } catch (err) {
+      console.warn('Failed to load file list:', err);
     }
   }
 
-  function renderFileList() {
-    if (files.size === 0) {
-      $section.style.display = 'none';
-      $emptyState.style.display = 'none';
+  function renderFileManager() {
+    if (fmFiles.length === 0) {
+      $fmSection.style.display = 'block';
+      $fmEmpty.style.display = 'block';
+      $fmBody.innerHTML = '';
+      $fmCount.textContent = '(0)';
       return;
     }
+    $fmSection.style.display = 'block';
+    $fmEmpty.style.display = 'none';
+    $fmCount.textContent = `(${fmFiles.length})`;
 
+    $fmBody.innerHTML = fmFiles.map(f => {
+      const icon = getFileIcon(f.name);
+      const sizeStr = formatSize(f.size);
+      const timeStr = formatTime(f.modified);
+      const badge = getFMStatusBadge(f.status);
+      const canPreview = isPreviewable(f.name);
+      const isSafe = f.status === 'clean';
+      const dlAction = isSafe ? `downloadDirect('${escapeAttr(f.path)}')` : `downloadWithWarning('${escapeAttr(f.path)}','${escapeAttr(f.name)}','${f.status}')`;
+
+      let actions = '';
+      if (canPreview) actions += `<button class="btn-sm" onclick="openPreview('${escapeAttr(f.path)}','${escapeAttr(f.name)}')">预览</button>`;
+      actions += `<button class="btn-sm" onclick="${dlAction}">下载</button>`;
+      if (f.report_url) actions += `<a class="btn-sm" href="${escapeAttr(f.report_url)}" target="_blank" rel="noopener" style="text-decoration:none;">安全报告</a>`;
+
+      return `<tr>
+        <td class="col-check"><input type="checkbox" class="checkbox-custom fm-row-check" data-path="${escapeAttr(f.path)}"></td>
+        <td class="col-name"><div class="fm-filename">${icon}<span title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span></div></td>
+        <td class="col-size">${sizeStr}</td>
+        <td class="col-time">${timeStr}</td>
+        <td class="col-status">${badge}</td>
+        <td class="col-actions">${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function getFMStatusBadge(status) {
+    switch (status) {
+      case 'clean':    return '<span class="badge badge-clean">✓ 已检测安全</span>';
+      case 'danger':   return '<span class="badge badge-danger">⚠ 发现风险</span>';
+      case 'scanning': return '<span class="badge badge-scanning"><span class="spinner" style="width:12px;height:12px;"></span>扫描中...</span>';
+      case 'error':    return '<span class="badge badge-error">扫描出错</span>';
+      default:         return '<span class="badge badge-waiting">未知</span>';
+    }
+  }
+
+  function isPreviewable(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    return ['jpg','jpeg','png','gif','webp','svg','bmp','txt','md','json','csv','xml','yaml','yml','html','css','js','php','py','sh','ini','conf','log'].includes(ext);
+  }
+
+  // ── Preview ───────────────────────────────────────────────────────────
+  window.openPreview = (path, name) => {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const imgExts = ['jpg','jpeg','png','gif','webp','svg','bmp'];
+    $previewTitle.textContent = name;
+
+    if (imgExts.includes(ext)) {
+      $previewBody.innerHTML = `<img src="/api/preview?path=${encodeURIComponent(path)}" alt="${escapeHtml(name)}" loading="lazy">`;
+    } else {
+      $previewBody.innerHTML = '<div style="text-align:center;padding:40px;color:oklch(0.5 0 0);"><span class="spinner" style="width:24px;height:24px;"></span></div>';
+      fetch(`/api/preview?path=${encodeURIComponent(path)}`)
+        .then(r => r.ok ? r.text() : Promise.reject('加载失败'))
+        .then(text => { $previewBody.innerHTML = `<pre>${escapeHtml(text)}</pre>`; })
+        .catch(err => { $previewBody.innerHTML = `<p style="color:oklch(0.65 0.1 25);">${escapeHtml(String(err))}</p>`; });
+    }
+    $previewModal.classList.add('active');
+  };
+
+  window.closePreview = () => { $previewModal.classList.remove('active'); $previewBody.innerHTML = ''; };
+
+  // ── Download ──────────────────────────────────────────────────────────
+  window.downloadDirect = (path) => {
+    const a = document.createElement('a');
+    a.href = `/api/download?path=${encodeURIComponent(path)}`;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  window.downloadWithWarning = (path, name, status) => {
+    pendingDownloadPath = path;
+    const label = status === 'scanning' ? '正在扫描中' : '扫描出错';
+    $warningText.innerHTML = `文件 <strong>${escapeHtml(name)}</strong> ${label}，尚未确认安全性。<br><br>下载并执行未知文件可能导致设备感染恶意软件。确定要继续吗？`;
+    $warningModal.classList.add('active');
+  };
+
+  window.closeWarning = () => { $warningModal.classList.remove('active'); pendingDownloadPath = null; };
+
+  window.confirmDownload = () => {
+    if (pendingDownloadPath) {
+      downloadDirect(pendingDownloadPath);
+      closeWarning();
+    }
+  };
+
+  // ── File upload management ────────────────────────────────────────────
+  function addFiles(fileArray) {
+    if (!fileArray.length) return;
+    const maxSize = 10 * 1024 * 1024 * 1024;
+    let added = 0;
+    for (const f of fileArray) {
+      if (f.size > maxSize) { toast(`"${truncate(f.name, 28)}" 过大（最大 10GB）`, 'error'); continue; }
+      const id = crypto.randomUUID();
+      files.set(id, { id, file: f, name: f.name, size: f.size, status: 'waiting', progress: 0, scanResult: null, analysisId: null, filePath: null, message: '' });
+      added++;
+    }
+    if (added > 0) { toast(`已添加 ${added} 个文件`, 'success'); renderFileList(); processQueue(); }
+  }
+
+  function renderFileList() {
+    if (files.size === 0) { $section.style.display = 'none'; return; }
     $section.style.display = 'block';
-    $emptyState.style.display = 'none';
     $fileCount.textContent = `(${files.size})`;
-
-    // Build HTML for all file items
-    const entries = [...files.values()].reverse(); // newest first
+    const entries = [...files.values()].reverse();
     $fileList.innerHTML = entries.map(renderFileItem).join('');
   }
 
   function renderFileItem(f) {
-    const icon = getFileIcon(f.name);
-    const sizeStr = formatSize(f.size);
-    const statusBadge = getStatusBadge(f);
-    const progressBar = getProgressBar(f);
-    const scanPanel = getScanPanel(f);
-    const actionBtns = getActionButtons(f);
-
-    return `
-      <div class="file-item" data-id="${f.id}">
-        <div style="display:flex;align-items:flex-start;gap:14px;">
-          <!-- Icon -->
-          <div style="flex-shrink:0;margin-top:2px;">
-            ${icon}
+    return `<div class="file-item" data-id="${f.id}">
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="flex-shrink:0;margin-top:2px;">${getFileIcon(f.name)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:14px;font-weight:600;color:oklch(0.9 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px;" title="${escapeHtml(f.name)}">${escapeHtml(truncate(f.name, 40))}</span>
+            <span style="font-size:12px;color:oklch(0.4 0 0);">${formatSize(f.size)}</span>
+            ${getStatusBadge(f)}
           </div>
-          <!-- Info -->
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span style="font-size:14px;font-weight:600;color:oklch(0.9 0 0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px;" title="${escapeHtml(f.name)}">${escapeHtml(truncate(f.name, 40))}</span>
-              <span style="font-size:12px;color:oklch(0.4 0 0);">${sizeStr}</span>
-              ${statusBadge}
-            </div>
-            ${progressBar}
-            ${f.message ? `<p style="font-size:12px;color:oklch(0.5 0 0);margin:6px 0 0;">${escapeHtml(f.message)}</p>` : ''}
-            ${scanPanel}
-          </div>
-          <!-- Actions -->
-          <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">
-            ${actionBtns}
-          </div>
+          ${getProgressBar(f)}
+          ${f.message ? `<p style="font-size:12px;color:oklch(0.5 0 0);margin:6px 0 0;">${escapeHtml(f.message)}</p>` : ''}
         </div>
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">${getActionButtons(f)}</div>
       </div>
-    `;
+    </div>`;
   }
 
   function getStatusBadge(f) {
     switch (f.status) {
-      case 'waiting':    return '<span class="badge badge-waiting"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.4 0 0);"></span>等待中</span>';
-      case 'preparing':  return '<span class="badge badge-scanning"><span class="spinner" style="width:12px;height:12px;"></span>准备中</span>';
-      case 'uploading':  return '<span class="badge badge-scanning"><span class="spinner" style="width:12px;height:12px;"></span>上传中</span>';
-      case 'scanning':   return '<span class="badge badge-scanning"><span class="spinner" style="width:12px;height:12px;"></span>扫描中</span>';
-      case 'clean':      return '<span class="badge badge-clean">✓ 安全</span>';
-      case 'danger':     return '<span class="badge badge-danger">⚠ 风险</span>';
-      case 'error':      return '<span class="badge badge-error">错误</span>';
-      case 'skipped':    return '<span class="badge badge-skip">跳过扫描</span>';
-      default:           return '';
+      case 'waiting':   return '<span class="badge badge-waiting"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.4 0 0);"></span>等待中</span>';
+      case 'uploading': return '<span class="badge badge-scanning"><span class="spinner" style="width:12px;height:12px;"></span>上传中</span>';
+      case 'scanning':  return '<span class="badge badge-scanning"><span class="spinner" style="width:12px;height:12px;"></span>扫描中</span>';
+      case 'clean':     return '<span class="badge badge-clean">✓ 安全</span>';
+      case 'danger':    return '<span class="badge badge-danger">⚠ 风险</span>';
+      case 'error':     return '<span class="badge badge-error">错误</span>';
+      case 'skipped':   return '<span class="badge badge-skip">跳过扫描</span>';
+      default:          return '';
     }
   }
 
   function getProgressBar(f) {
-    if (['waiting', 'preparing'].includes(f.status)) {
-      return `<div class="progress-track" style="margin-top:8px;"><div class="progress-fill" style="width:0%;"></div></div>`;
-    }
-    if (f.status === 'uploading') {
-      return `<div class="progress-track" style="margin-top:8px;"><div class="progress-fill" style="width:${f.progress}%;"></div></div>`;
-    }
-    if (f.status === 'scanning') {
-      return `<div class="progress-track" style="margin-top:8px;"><div class="progress-fill scanning" style="width:100%;"></div></div>`;
-    }
+    if (['waiting'].includes(f.status)) return `<div class="progress-track" style="margin-top:8px;"><div class="progress-fill" style="width:0%;"></div></div>`;
+    if (f.status === 'uploading') return `<div class="progress-track" style="margin-top:8px;"><div class="progress-fill" style="width:${f.progress}%;"></div></div>`;
+    if (f.status === 'scanning') return `<div class="progress-track" style="margin-top:8px;"><div class="progress-fill scanning" style="width:100%;"></div></div>`;
     return '';
-  }
-
-  function getScanPanel(f) {
-    if (!f.scanResult && f.status !== 'skipped') return '';
-
-    if (f.status === 'skipped') {
-      return `<div class="scan-panel"><p style="font-size:12px;color:oklch(0.5 0 0);margin:0;">${escapeHtml(f.message)}</p></div>`;
-    }
-
-    if (!f.scanResult) return '';
-
-    const r = f.scanResult;
-    const isClean = r.is_clean;
-    const color = isClean ? 'oklch(0.75 0.15 145)' : 'oklch(0.75 0.15 25)';
-    const label = isClean ? '安全' : '风险';
-
-    return `
-      <div class="scan-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:22px;font-weight:800;color:${color};">${r.malicious}/${r.total}</span>
-            <span style="font-size:12px;color:oklch(0.55 0 0);">引擎检测为${label}</span>
-          </div>
-          ${r.report_url ? `<a href="${escapeHtml(r.report_url)}" target="_blank" rel="noopener" class="vt-link">查看 VirusTotal 报告 →</a>` : ''}
-        </div>
-      </div>
-    `;
   }
 
   function getActionButtons(f) {
-    if (f.status === 'error') {
-      return `<button class="btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="window.__retryFile('${f.id}')">重试</button>`;
-    }
-    if (['clean', 'danger', 'skipped', 'error'].includes(f.status)) {
-      return `<button class="btn-ghost" style="font-size:11px;padding:4px 10px;opacity:0.5;" onclick="window.__removeFile('${f.id}')">×</button>`;
-    }
+    if (f.status === 'error') return `<button class="btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="window.__retryFile('${f.id}')">重试</button>`;
+    if (['clean','danger','skipped','error'].includes(f.status)) return `<button class="btn-ghost" style="font-size:11px;padding:4px 10px;opacity:0.5;" onclick="window.__removeFile('${f.id}')">×</button>`;
     return '';
   }
 
-  // ── File icon helper ──────────────────────────────────────────────────
   function getFileIcon(name) {
-    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const ext = (name.split('.').pop() || '').toLowerCase();
     const imgExts  = ['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff'];
     const vidExts  = ['mp4','avi','mov','mkv','wmv','flv','webm'];
     const docExts  = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','md','csv'];
     const codeExts = ['js','ts','py','java','cpp','c','rb','go','rs','html','css','json','xml','yaml','yml','php','sh'];
     const zipExts  = ['zip','rar','7z','tar','gz','bz2','xz'];
-
-    let iconClass = 'icon-default';
-    let path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'; // file base
-
-    if (imgExts.includes(ext)) {
-      iconClass = 'icon-img';
-      path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M4.5 17l3.5-5 2.5 3 3-4 4 6';
-    } else if (vidExts.includes(ext)) {
-      iconClass = 'icon-vid';
-      path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M10 11l5 3-5 3z';
-    } else if (docExts.includes(ext)) {
-      iconClass = 'icon-doc';
-      path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h8 M8 9h2';
-    } else if (codeExts.includes(ext)) {
-      iconClass = 'icon-code';
-      path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M10 12l-2 4 2 0 M14 12l2 4-2 0';
-    } else if (zipExts.includes(ext)) {
-      iconClass = 'icon-zip';
-      path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M12 18v-6 M9 15h6';
-    }
-
-    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="${iconClass}"><path d="${path}"/></svg>`;
+    let iconClass = 'icon-default', path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z';
+    if (imgExts.includes(ext)) { iconClass = 'icon-img'; path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M4.5 17l3.5-5 2.5 3 3-4 4 6'; }
+    else if (vidExts.includes(ext)) { iconClass = 'icon-vid'; path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M10 11l5 3-5 3z'; }
+    else if (docExts.includes(ext)) { iconClass = 'icon-doc'; path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h8 M8 9h2'; }
+    else if (codeExts.includes(ext)) { iconClass = 'icon-code'; path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M10 12l-2 4 2 0 M14 12l2 4-2 0'; }
+    else if (zipExts.includes(ext)) { iconClass = 'icon-zip'; path = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M12 18v-6 M9 15h6'; }
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="${iconClass}"><path d="${path}"/></svg>`;
   }
 
   // ── Upload queue ──────────────────────────────────────────────────────
   function processQueue() {
     const pending = [...files.values()].filter(f => f.status === 'waiting');
-    while (activeUploads < MAX_CONCURRENT_UPLOADS && pending.length > 0) {
-      const f = pending.shift();
-      processFile(f.id);
-    }
+    while (activeUploads < MAX_CONCURRENT_UPLOADS && pending.length > 0) { processFile(pending.shift().id); }
   }
 
   async function processFile(id) {
     const f = files.get(id);
     if (!f || f.status !== 'waiting') return;
-
     activeUploads++;
-
     try {
-      // Step 1: Upload to backend (which proxies to Koofr)
-      f.status = 'uploading';
-      f.progress = 0;
-      renderFileList();
-
-      const formData = new FormData();
-      formData.append('file', f.file);
-
+      f.status = 'uploading'; f.progress = 0; renderFileList();
+      const formData = new FormData(); formData.append('file', f.file);
       const uploadResult = await uploadWithProgress(f, formData);
       f.filePath = uploadResult.file_path;
 
-      // Step 2: Trigger scan (or skip for large files)
       if (f.size > VT_SIZE_LIMIT) {
-        f.status = 'skipped';
-        f.message = '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。';
-        renderFileList();
-        toast(`"${truncate(f.name, 20)}" 上传成功（跳过扫描）`, 'success');
+        f.status = 'skipped'; f.message = '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。';
+        renderFileList(); toast(`"${truncate(f.name, 20)}" 上传成功（跳过扫描）`, 'success');
       } else {
-        f.status = 'scanning';
-        renderFileList();
+        f.status = 'scanning'; renderFileList();
         toast(`"${truncate(f.name, 20)}" 上传完成，开始扫描...`, 'info');
         await scanFile(f);
       }
-
     } catch (err) {
-      f.status = 'error';
-      f.message = err.message || '处理失败';
-      renderFileList();
-      toast(`"${truncate(f.name, 20)}" 失败: ${err.message}`, 'error');
+      f.status = 'error'; f.message = err.message || '处理失败';
+      renderFileList(); toast(`"${truncate(f.name, 20)}" 失败: ${err.message}`, 'error');
     } finally {
-      activeUploads--;
-      renderFileList();
-      processQueue();
+      activeUploads--; renderFileList(); processQueue();
+      loadFileList(); // Refresh file manager after each upload
     }
   }
 
-  // ── Upload with progress tracking via XHR ──────────────────────────────
   function uploadWithProgress(f, formData) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/upload', true);
-
-      xhr.upload.onprogress = e => {
-        if (e.lengthComputable) {
-          f.progress = Math.round((e.loaded / e.total) * 100);
-          const bar = $fileList.querySelector(`[data-id="${f.id}"] .progress-fill`);
-          if (bar) bar.style.width = f.progress + '%';
-        }
-      };
-
-      xhr.onload = () => {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
-            f.progress = 100;
-            resolve(data);
-          } else {
-            reject(new Error(data.error || `上传失败 (HTTP ${xhr.status})`));
-          }
-        } catch {
-          reject(new Error('服务器返回了无效的响应'));
-        }
-      };
-
+      xhr.upload.onprogress = e => { if (e.lengthComputable) { f.progress = Math.round((e.loaded / e.total) * 100); const bar = $fileList.querySelector(`[data-id="${f.id}"] .progress-fill`); if (bar) bar.style.width = f.progress + '%'; } };
+      xhr.onload = () => { try { const data = JSON.parse(xhr.responseText); if (xhr.status >= 200 && xhr.status < 300 && data.ok) { f.progress = 100; resolve(data); } else { reject(new Error(data.error || `上传失败 (HTTP ${xhr.status})`)); } } catch { reject(new Error('服务器返回了无效的响应')); } };
       xhr.onerror = () => reject(new Error('网络错误，上传中断'));
       xhr.ontimeout = () => reject(new Error('上传超时'));
-      xhr.timeout = 600000; // 10 min
-
+      xhr.timeout = 600000;
       xhr.send(formData);
     });
   }
 
-  // ── Scan file via VirusTotal ──────────────────────────────────────────
   async function scanFile(f) {
     try {
-      // Submit scan request
-      const resp = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_path: f.filePath,
-          filename:  f.name,
-          size:      f.size,
-        }),
-      });
-
+      const resp = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_path: f.filePath, filename: f.name, size: f.size }) });
       const data = await resp.json();
-
-      if (!resp.ok || !data.ok) {
-        throw new Error(data.error || '扫描提交失败');
-      }
-
-      // Check if scan was skipped (> 32MB)
-      if (data.scan_skipped) {
-        f.status = 'skipped';
-        f.message = data.message || '文件过大，无法扫描';
-        renderFileList();
-        return;
-      }
-
+      if (!resp.ok || !data.ok) throw new Error(data.error || '扫描提交失败');
+      if (data.scan_skipped) { f.status = 'skipped'; f.message = data.message || '文件过大，无法扫描'; renderFileList(); return; }
       f.analysisId = data.analysis_id;
-
-      // Poll for results
       await pollScanResult(f);
-
-    } catch (err) {
-      f.status = 'error';
-      f.message = '扫描失败: ' + (err.message || '未知错误');
-      renderFileList();
-    }
+    } catch (err) { f.status = 'error'; f.message = '扫描失败: ' + (err.message || '未知错误'); renderFileList(); }
   }
 
   async function pollScanResult(f) {
-    let attempts = 0;
-    let delay = POLL_INTERVAL_INITIAL;
-
+    let attempts = 0, delay = POLL_INTERVAL_INITIAL;
     while (attempts < POLL_MAX_ATTEMPTS) {
-      attempts++;
-      await sleep(delay);
-      delay = POLL_INTERVAL_STEADY;
-
+      attempts++; await sleep(delay); delay = POLL_INTERVAL_STEADY;
       try {
-        const resp = await fetch(`/api/scan?analysisId=${f.analysisId}`);
+        // Include file_path so backend can update status file
+        const resp = await fetch(`/api/scan?analysisId=${f.analysisId}&file_path=${encodeURIComponent(f.filePath)}`);
         const data = await resp.json();
-
-        if (!resp.ok) {
-          if (resp.status === 429) {
-            // Rate limited — back off
-            delay = 30000;
-            continue;
-          }
-          throw new Error(data.error || '状态查询失败');
-        }
-
+        if (!resp.ok) { if (resp.status === 429) { delay = 30000; continue; } throw new Error(data.error || '状态查询失败'); }
         if (data.is_complete && data.scan_result) {
           f.scanResult = data.scan_result;
           f.status = data.scan_result.is_clean ? 'clean' : 'danger';
-          renderFileList();
-
+          renderFileList(); loadFileList(); // Refresh file manager
           const verdict = data.scan_result.is_clean ? '安全' : '存在风险';
-          toast(`"${truncate(f.name, 20)}" 扫描完成: ${verdict} (${data.scan_result.malicious}/${data.scan_result.total})`,
-            data.scan_result.is_clean ? 'success' : 'warning');
+          toast(`"${truncate(f.name, 20)}" 扫描完成: ${verdict} (${data.scan_result.malicious}/${data.scan_result.total})`, data.scan_result.is_clean ? 'success' : 'warning');
           return;
         }
-
-        // Still processing — update UI subtly
-        if (data.status === 'in-progress') {
-          f.message = `扫描中... (第 ${attempts} 次检查)`;
-          renderFileList();
-        }
-
-      } catch (err) {
-        // Non-fatal — continue polling
-        console.warn('Poll error:', err);
-      }
+        if (data.status === 'in-progress') { f.message = `扫描中... (第 ${attempts} 次检查)`; renderFileList(); }
+      } catch (err) { console.warn('Poll error:', err); }
     }
-
-    // Timed out
-    f.status = 'error';
-    f.message = '扫描超时（已等待超过 10 分钟）';
-    renderFileList();
+    f.status = 'error'; f.message = '扫描超时（已等待超过 10 分钟）';
+    renderFileList(); loadFileList();
     toast(`"${truncate(f.name, 20)}" 扫描超时`, 'warning');
   }
 
   // ── Global actions ────────────────────────────────────────────────────
   window.__retryFile = (id) => {
-    const f = files.get(id);
-    if (!f) return;
-    f.status = 'waiting';
-    f.progress = 0;
-    f.message = '';
-    f.scanResult = null;
-    f.analysisId = null;
-    renderFileList();
-    processQueue();
+    const f = files.get(id); if (!f) return;
+    f.status = 'waiting'; f.progress = 0; f.message = ''; f.scanResult = null; f.analysisId = null;
+    renderFileList(); processQueue();
   };
+  window.__removeFile = (id) => { files.delete(id); renderFileList(); };
 
-  window.__removeFile = (id) => {
-    files.delete(id);
-    renderFileList();
-  };
-
-  // ── Toast system ──────────────────────────────────────────────────────
+  // ── Toast ─────────────────────────────────────────────────────────────
   function toast(message, type = 'info') {
-    const icons = {
-      success: '✓',
-      error:   '✕',
-      warning: '⚠',
-      info:    'ℹ',
-    };
-    const colors = {
-      success: 'oklch(0.7 0.15 145)',
-      error:   'oklch(0.7 0.15 25)',
-      warning: 'oklch(0.7 0.12 60)',
-      info:    'oklch(0.7 0.12 250)',
-    };
-
+    const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+    const colors = { success: 'oklch(0.7 0.15 145)', error: 'oklch(0.7 0.15 25)', warning: 'oklch(0.7 0.12 60)', info: 'oklch(0.7 0.12 250)' };
     const el = document.createElement('div');
     el.className = 'toast';
-    el.innerHTML = `
-      <span style="color:${colors[type]};font-weight:700;margin-right:6px;">${icons[type]}</span>
-      ${escapeHtml(message)}
-    `;
+    el.innerHTML = `<span style="color:${colors[type]};font-weight:700;margin-right:6px;">${icons[type]}</span>${escapeHtml(message)}`;
     $toasts.appendChild(el);
-
-    setTimeout(() => {
-      el.classList.add('removing');
-      setTimeout(() => el.remove(), 300);
-    }, 4000);
+    setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 300); }, 4000);
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────
-  function formatSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 2 : 0) + ' ' + units[i];
-  }
-
-  function truncate(str, max) {
-    if (str.length <= max) return str;
-    const ext = str.includes('.') ? '.' + str.split('.').pop() : '';
-    return str.slice(0, max - ext.length - 3) + '...' + ext;
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
+  function formatSize(bytes) { if (bytes === 0) return '0 B'; const u = ['B','KB','MB','GB','TB']; const i = Math.floor(Math.log(bytes)/Math.log(1024)); return (bytes/Math.pow(1024,i)).toFixed(i>0?2:0)+' '+u[i]; }
+  function formatTime(ts) { if (!ts) return '-'; const d = new Date(ts); const pad = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  function truncate(str, max) { if (str.length <= max) return str; const ext = str.includes('.') ? '.' + str.split('.').pop() : ''; return str.slice(0, max - ext.length - 3) + '...' + ext; }
+  function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function escapeAttr(str) { return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 })();
 </script>
