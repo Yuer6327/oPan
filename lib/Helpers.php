@@ -8,6 +8,10 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
 set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline): bool {
+    // Skip deprecation notices — they shouldn't break the response
+    if ($errno === E_DEPRECATED || $errno === E_USER_DEPRECATED) {
+        return true;
+    }
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -156,8 +160,6 @@ function httpRequest(string $method, string $url, array $options = []): array
     $errno    = curl_errno($ch);
     $status   = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSz = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-
-    curl_close($ch);
 
     if ($response === false) {
         return [
