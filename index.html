@@ -729,28 +729,18 @@
     activeUploads++;
 
     try {
-      // Step 1: Prepare upload
-      f.status = 'preparing';
-      renderFileList();
-
-      const prepResp = await fetch(`/api/prepare-upload?filename=${encodeURIComponent(f.name)}&size=${f.size}`);
-      const prepData = await prepResp.json();
-
-      if (!prepResp.ok || !prepData.ok) {
-        throw new Error(prepData.error || '上传准备失败');
-      }
-
-      f.uploadUrl = prepData.upload_url;
-      f.filePath  = prepData.file_path;
-
-      // Step 2: Upload to Koofr
+      // Step 1: Upload to backend (which proxies to Koofr)
       f.status = 'uploading';
       f.progress = 0;
       renderFileList();
 
-      await uploadToKoofr(f);
+      const formData = new FormData();
+      formData.append('file', f.file);
 
-      // Step 3: Trigger scan (or skip for large files)
+      const uploadResult = await uploadWithProgress(f, formData);
+      f.filePath = uploadResult.file_path;
+
+      // Step 2: Trigger scan (or skip for large files)
       if (f.size > VT_SIZE_LIMIT) {
         f.status = 'skipped';
         f.message = '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。';
@@ -775,44 +765,39 @@
     }
   }
 
-  // ── Upload to Koofr via presigned URL ─────────────────────────────────
-  function uploadToKoofr(f) {
+  // ── Upload with progress tracking via XHR ──────────────────────────────
+  function uploadWithProgress(f, formData) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', f.uploadUrl, true);
-
-      // Try to set reasonable content type
-      const ext = f.name.split('.').pop()?.toLowerCase();
-      const mimeMap = {
-        'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','gif':'image/gif',
-        'webp':'image/webp','svg':'image/svg+xml','pdf':'application/pdf',
-        'zip':'application/zip','json':'application/json','txt':'text/plain',
-      };
-      if (mimeMap[ext]) xhr.setRequestHeader('Content-Type', mimeMap[ext]);
+      xhr.open('POST', '/api/upload', true);
 
       xhr.upload.onprogress = e => {
         if (e.lengthComputable) {
           f.progress = Math.round((e.loaded / e.total) * 100);
-          // Update just the progress bar for performance
-          const item = $fileList.querySelector(`[data-id="${f.id}"] .progress-fill`);
-          if (item) item.style.width = f.progress + '%';
+          const bar = $fileList.querySelector(`[data-id="${f.id}"] .progress-fill`);
+          if (bar) bar.style.width = f.progress + '%';
         }
       };
 
       xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          f.progress = 100;
-          resolve();
-        } else {
-          reject(new Error(`上传失败 (HTTP ${xhr.status})`));
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
+            f.progress = 100;
+            resolve(data);
+          } else {
+            reject(new Error(data.error || `上传失败 (HTTP ${xhr.status})`));
+          }
+        } catch {
+          reject(new Error('服务器返回了无效的响应'));
         }
       };
 
       xhr.onerror = () => reject(new Error('网络错误，上传中断'));
       xhr.ontimeout = () => reject(new Error('上传超时'));
-      xhr.timeout = 600000; // 10 min timeout
+      xhr.timeout = 600000; // 10 min
 
-      xhr.send(f.file);
+      xhr.send(formData);
     });
   }
 

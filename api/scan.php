@@ -56,20 +56,25 @@ try {
         jsonError('Missing required field: file_path', 400, 'MISSING_PARAM');
     }
 
-    // VT size limit check (32 MB)
+    // VT file upload size limit (32 MB for free accounts)
     if ($size > 32 * 1024 * 1024) {
         jsonOk([
             'scan_skipped' => true,
-            'reason'       => 'File exceeds VirusTotal 32 MB limit for URL scanning.',
+            'reason'       => 'File exceeds VirusTotal 32 MB limit.',
             'message'      => '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。',
         ]);
     }
 
-    $koofr      = new KoofrClient();
-    $downloadUrl = $koofr->getDownloadLink($filePath);
+    // ── Download file from Koofr and submit to VT ─────────────────────
+    $koofr       = new KoofrClient();
+    $fileContent = $koofr->downloadFile($filePath);
+
+    if ($fileContent === null) {
+        jsonError('Failed to download file from storage for scanning', 502, 'DOWNLOAD_FAILED');
+    }
 
     $vt     = new VirusTotalClient();
-    $result = $vt->submitUrl($downloadUrl);
+    $result = $vt->submitFile($fileContent, $filename ?: 'unknown');
 
     jsonOk([
         'analysis_id' => $result['analysis_id'],

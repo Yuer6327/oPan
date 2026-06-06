@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Koofr API Client
  *
  * Uses App Password + HTTP Basic Auth.
- * Provides methods for mount listing, upload/download link generation.
+ * Provides upload, download, folder management via the content API.
  */
 final class KoofrClient
 {
@@ -19,61 +19,62 @@ final class KoofrClient
         $email    = env('KOOFR_EMAIL');
         $password = env('KOOFR_APP_PASSWORD');
         $this->auth = 'Basic ' . base64_encode("{$email}:{$password}");
-
-        // Allow override via env, otherwise auto-detect the default mount
         $this->mountId = getenv('KOOFR_MOUNT_ID') ?: $this->resolveDefaultMount();
     }
 
     // ── Public API ──────────────────────────────────────────────────────
 
     /**
-     * Get a presigned upload link for a file path.
-     * Returns the temporary URL the frontend can PUT to directly.
+     * Upload a file to Koofr via the content API (multipart/form-data).
      */
-    public function getUploadLink(string $path): string
+    public function uploadFile(string $path, string $tmpPath, string $filename): array
     {
-        $res = $this->get("/api/v2/mounts/{$this->mountId}/files/link/upload", [
-            'path' => $path,
+        $url = self::BASE . "/content/api/v2/mounts/{$this->mountId}/files/put"
+             . '?path=' . rawurlencode(dirname($path) === '/' ? '/' : dirname($path))
+             . '&filename=' . rawurlencode($filename)
+             . '&info=true';
+
+        $res = httpRequest('POST', $url, [
+            'headers' => [
+                "Authorization: {$this->auth}",
+            ],
+            'form_fields' => [
+                'file' => new CURLFile($tmpPath, mime_content_type($tmpPath) ?: 'application/octet-stream', $filename),
+            ],
+            'timeout' => 300,
         ]);
 
         if ($res['status'] < 200 || $res['status'] >= 300) {
             throw new RuntimeException(
-                "Koofr upload-link failed (HTTP {$res['status']}): " .
+                "Koofr upload failed (HTTP {$res['status']}): " .
                 ($res['raw'] ?? json_encode($res['body']))
             );
         }
 
-        $body = $res['body'];
-        if (!is_array($body) || empty($body['link'])) {
-            throw new RuntimeException('Koofr upload-link: unexpected response format');
-        }
-
-        return $body['link'];
+        return is_array($res['body']) ? $res['body'] : ['ok' => true];
     }
 
     /**
-     * Get a temporary download link for a file path.
-     * Used to submit to VirusTotal for scanning.
+     * Download a file from Koofr via the content API.
+     * Returns the raw file content as a string, or null on failure.
      */
-    public function getDownloadLink(string $path): string
+    public function downloadFile(string $path): ?string
     {
-        $res = $this->get("/api/v2/mounts/{$this->mountId}/files/link/download", [
-            'path' => $path,
+        $url = self::BASE . "/content/api/v2/mounts/{$this->mountId}/files/get"
+             . '?path=' . rawurlencode($path);
+
+        $res = httpRequest('GET', $url, [
+            'headers' => [
+                "Authorization: {$this->auth}",
+            ],
+            'timeout' => 120,
         ]);
 
         if ($res['status'] < 200 || $res['status'] >= 300) {
-            throw new RuntimeException(
-                "Koofr download-link failed (HTTP {$res['status']}): " .
-                ($res['raw'] ?? json_encode($res['body']))
-            );
+            return null;
         }
 
-        $body = $res['body'];
-        if (!is_array($body) || empty($body['link'])) {
-            throw new RuntimeException('Koofr download-link: unexpected response format');
-        }
-
-        return $body['link'];
+        return is_string($res['raw']) ? $res['raw'] : null;
     }
 
     /**
@@ -81,29 +82,28 @@ final class KoofrClient
      */
     public function ensureFolder(string $path): void
     {
-        // Split the path and create each level
         $parts = array_filter(explode('/', $path), fn($p) => $p !== '');
         $current = '';
         foreach ($parts as $part) {
             $current .= '/' . $part;
-            $this->post("/api/v2/mounts/{$this->mountId}/files/folder", [
-                'path' => dirname($current) === '/' ? '/' : dirname($current),
-            ], json_encode(['name' => $part]));
+            $this->postJson(
+                "/api/v2/mounts/{$this->mountId}/files/folder",
+                ['path' => dirname($current) === '/' ? '/' : dirname($current)],
+                ['name' => $part]
+            );
             // Ignore "already exists" errors
         }
     }
 
     /**
-     * List available mounts (used to auto-detect default mount).
+     * List available mounts.
      */
     public function listMounts(): array
     {
-        $res = $this->get('/api/v2/mounts');
-
+        $res = $this->getJson('/api/v2/mounts');
         if ($res['status'] < 200 || $res['status'] >= 300) {
             throw new RuntimeException("Koofr list-mounts failed (HTTP {$res['status']})");
         }
-
         $body = $res['body'];
         return is_array($body) && isset($body['mounts']) ? $body['mounts'] : [];
     }
@@ -121,46 +121,35 @@ final class KoofrClient
         if (empty($mounts)) {
             throw new RuntimeException('Koofr: no mounts found. Set KOOFR_MOUNT_ID explicitly.');
         }
-        // Return the first mount (usually the user's primary "Koofr" mount)
         return $mounts[0]['id'] ?? throw new RuntimeException('Koofr: mount has no id field');
     }
 
-    private function get(string $path, array $query = []): array
+    private function getJson(string $path, array $query = []): array
     {
         $url = self::BASE . $path;
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
         }
-
         return httpRequest('GET', $url, [
-            'headers' => [
-                "Authorization: {$this->auth}",
-                'Accept: application/json',
-            ],
+            'headers' => ["Authorization: {$this->auth}", 'Accept: application/json'],
             'timeout' => 15,
         ]);
     }
 
-    private function post(string $path, array $query = [], ?string $jsonBody = null): array
+    private function postJson(string $path, array $query = [], array $body = []): array
     {
         $url = self::BASE . $path;
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
         }
-
-        $options = [
+        return httpRequest('POST', $url, [
             'headers' => [
                 "Authorization: {$this->auth}",
                 'Accept: application/json',
+                'Content-Type: application/json',
             ],
+            'body'    => json_encode($body),
             'timeout' => 15,
-        ];
-
-        if ($jsonBody !== null) {
-            $options['headers'][] = 'Content-Type: application/json';
-            $options['body'] = $jsonBody;
-        }
-
-        return httpRequest('POST', $url, $options);
+        ]);
     }
 }
