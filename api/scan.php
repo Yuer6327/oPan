@@ -41,17 +41,18 @@ try {
                 'report_url' => $result['report_url'],
             ];
 
-            // Update scan status in Supabase
+            // Update scan status in Supabase (upsert to handle pre-migration files)
             if ($filePath !== '') {
                 try {
                     $db = new SupabaseClient();
-                    $db->update('scan_status', [
+                    $db->upsert('scan_status', [
+                        'file_path'  => $filePath,
                         'status'     => $isClean ? 'clean' : 'danger',
                         'malicious'  => $s['malicious'],
                         'total'      => $s['total'],
                         'report_url' => $result['report_url'],
                         'scan_time'  => date('c'),
-                    ], 'file_path=eq.' . rawurlencode($filePath));
+                    ]);
                 } catch (Throwable) {
                     // Non-fatal
                 }
@@ -79,10 +80,11 @@ try {
     if ($size > 32 * 1024 * 1024) {
         try {
             $db = new SupabaseClient();
-            $db->update('scan_status', [
+            $db->upsert('scan_status', [
+                'file_path' => $filePath,
                 'status'    => 'error',
                 'scan_time' => date('c'),
-            ], 'file_path=eq.' . rawurlencode($filePath));
+            ]);
         } catch (Throwable) {}
 
         jsonOk([
@@ -99,10 +101,11 @@ try {
     if ($fileContent === null) {
         try {
             $db = new SupabaseClient();
-            $db->update('scan_status', [
+            $db->upsert('scan_status', [
+                'file_path' => $filePath,
                 'status'    => 'error',
                 'scan_time' => date('c'),
-            ], 'file_path=eq.' . rawurlencode($filePath));
+            ]);
         } catch (Throwable) {}
 
         jsonError('Failed to download file from storage for scanning', 502, 'DOWNLOAD_FAILED');

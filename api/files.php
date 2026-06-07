@@ -37,8 +37,8 @@ try {
         $name = $f['name'] ?? '';
         $type = $f['type'] ?? '';
 
-        // Skip directories
-        if ($type !== 'file') {
+        // Skip directories and status file
+        if ($type !== 'file' || $name === '.scan-status.json') {
             continue;
         }
 
