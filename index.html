@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>oPan | 自由开放的网盘</title>
   <link rel="icon" href="https://blog.yuer6327.top/favicon/gravatar.png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
+  <script data-cfasync="false" src="https://cdn.tailwindcss.com"></script>
+  <script data-cfasync="false">
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -423,7 +423,7 @@
   oPan — 自由开放的网盘 · Powered by Koofr & VirusTotal
 </footer>
 
-<script>
+<script data-cfasync="false">
 (() => {
   'use strict';
 
@@ -562,7 +562,7 @@
     // Try Worker proxy first (no auth needed, CF handles it)
     if (koofrViaWorker !== false) {
       try {
-        const resp = await fetch(`/koofr/get?path=${encodeURIComponent(path)}`, { signal: AbortSignal.timeout(8000) });
+        const resp = await fetch(`/koofr/get?path=${encodeURIComponent(path)}`);
         if (resp.ok) { koofrViaWorker = true; return resp; }
       } catch { koofrViaWorker = false; }
     }
