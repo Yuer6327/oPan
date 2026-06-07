@@ -52,6 +52,28 @@ Koofr 是欧洲的云存储服务，提供 REST API 和 WebDAV 支持。选择�
 
 VirusTotal 免费版提供每天 500 次 API 调用，每分钟 4 次。使用 `POST /files` 端点直接上传文件内容进行扫描（不走 URL 扫描），扫描完成后通过 `GET /analyses/{id}` 轮询结果。
 
+## 状态存储：Supabase
+
+扫描状态需要持久化存储。最初尝试存在 Koofr 的 `.scan-status.json` 文件中，但存在并发写入冲突问题——读-改-写不是原子操作，多人同时上传会丢数据。
+
+改用 Supabase（PostgreSQL + PostgREST），通过 `upsert` 实现原子性的 INSERT/UPDATE：
+
+```sql
+CREATE TABLE scan_status (
+    file_path text PRIMARY KEY,
+    original_name text NOT NULL DEFAULT '',
+    size bigint NOT NULL DEFAULT 0,
+    status text NOT NULL DEFAULT 'scanning',
+    malicious int NOT NULL DEFAULT 0,
+    total int NOT NULL DEFAULT 0,
+    report_url text,
+    scan_time timestamptz DEFAULT now(),
+    created_at timestamptz DEFAULT now()
+);
+```
+
+Supabase 免费版提供 500 MB 数据库、50,000 月活用户，对于个人网盘绰绰有余。通过 anon key + RLS 策略实现公开读写，PHP 后端直接调用 PostgREST REST API，无需引入 SDK。
+
 ---
 
 # 二、架构设计
@@ -59,16 +81,16 @@ VirusTotal 免费版提供每天 500 次 API 调用，每分钟 4 次。使用 `
 ## 整体流程
 
 ```
-浏览器                    Vercel (PHP)                Koofr           VirusTotal
+浏览器                    Vercel (PHP)             Koofr / Supabase      VirusTotal
   │                          │                        │                  │
   ├── POST /api/upload ──────►│                        │                  │
-  │   (multipart/form-data)  ├── POST /content/... ──►│                  │
+  │   (multipart/form-data)  ├── POST /content/... ──►│ (Koofr)           │
   │                          │◄─ 200 OK ──────────────┤                  │
-  │                          ├── 写入 scan-status.json ►│                 │
+  │                          ├── UPSERT scan_status ──►│ (Supabase)       │
   │◄─ { file_path } ─────────┤                        │                  │
   │                          │                        │                  │
   ├── POST /api/scan ────────►│                        │                  │
-  │                          ├── GET /content/... ────►│                  │
+  │                          ├── GET /content/... ────►│ (Koofr)           │
   │                          │◄─ file content ────────┤                  │
   │                          ├── POST /files ────────────────────────────►│
   │                          │◄─ { analysis_id } ───────────────────────┤
@@ -77,34 +99,53 @@ VirusTotal 免费版提供每天 500 次 API 调用，每分钟 4 次。使用 `
   ├── GET /api/scan?aid=... ►│                        │                  │
   │                          ├── GET /analyses/{id} ────────────────────►│
   │                          │◄─ { status, stats } ────────────────────┤
-  │                          ├── 更新 scan-status.json ►│                │
+  │                          ├── UPSERT scan_status ──►│ (Supabase)       │
   │◄─ { is_clean, stats } ───┤                        │                  │
 ```
 
 ## 扫描状态持久化
 
-Vercel Serverless 是无状态的，每次冷启动内存都会重置。为了在文件管理器中展示每个文件的扫描状态，使用 Koofr 存储一个 `.scan-status.json` 文件：
+Vercel Serverless 是无状态的，每次冷启动内存都会重置。扫描状态存储在 Supabase 的 `scan_status` 表中，以 `file_path` 为主键：
 
-```json
-{
-  "files": {
-    "/oPan/1780757830_0fc86dfb_report.pdf": {
-      "status": "clean",
-      "malicious": 0,
-      "total": 75,
-      "report_url": "https://www.virustotal.com/gui/file/46842e64...",
-      "scan_time": "2026-06-06T14:56:30+00:00"
-    }
-  }
-}
-```
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `file_path` | text (PK) | 文件路径，如 `/oPan/1780757830_abc_report.pdf` |
+| `original_name` | text | 原始文件名 |
+| `size` | bigint | 文件大小 |
+| `status` | text | `scanning` / `clean` / `danger` / `error` |
+| `malicious` | int | VT 检出引擎数 |
+| `total` | int | VT 总引擎数 |
+| `report_url` | text | VT 报告链接 |
+| `scan_time` | timestamptz | 扫描完成时间 |
 
-三个写入时机：
+三个写入时机（全部使用 `upsert` 保证原子性）：
 1. **上传完成** → `status: "scanning"`
-2. **扫描完成** → `status: "clean"` 或 `status: "danger"`（附检测结果）
+2. **扫描完成** → `status: "clean"` 或 `status: "danger"`
 3. **扫描失败/超时/跳过** → `status: "error"`
 
-读取时机：每次请求 `/api/files` 时读取并合并。
+PHP 调用 Supabase 的方式是直接 HTTP 请求 PostgREST：
+
+```php
+// Upsert: INSERT or UPDATE on conflict
+$res = httpRequest('POST', "{$supabaseUrl}/rest/v1/scan_status", [
+    'headers' => [
+        "apikey: {$supabaseKey}",
+        "Authorization: Bearer {$supabaseKey}",
+        'Content-Type: application/json',
+        'Prefer: resolution=merge-duplicates,return=representation',
+    ],
+    'body' => json_encode([
+        'file_path' => '/oPan/report.pdf',
+        'status'    => 'clean',
+        'malicious' => 0,
+        'total'     => 75,
+    ]),
+]);
+```
+
+`Prefer: resolution=merge-duplicates` 是 PostgREST 的 upsert 指令——如果 `file_path` 已存在则更新，不存在则插入。一个请求搞定，无需先查再改。
+
+读取时机：每次请求 `/api/files` 时一次性查出所有行，与 Koofr 文件列表合并后返回。
 
 ## 文件命名
 
@@ -124,9 +165,9 @@ Vercel Serverless 是无状态的，每次冷启动内存都会重置。为了�
 
 ```
 api/
-  upload.php      POST    multipart/form-data → Koofr
-  scan.php        POST    触发 VT 扫描 / GET 轮询结果
-  files.php       GET     列出文件 + 合并扫描状态
+  upload.php      POST    multipart/form-data → Koofr + Supabase
+  scan.php        POST    触发 VT 扫描 / GET 轮询结果 + 更新 Supabase
+  files.php       GET     列出 Koofr 文件 + 合并 Supabase 扫描状态
   download.php    GET     流式下载文件
   preview.php     GET     内联预览（图片/文本）
   health.php      GET     健康检查
@@ -134,6 +175,7 @@ lib/
   Helpers.php            CORS / JSON / cURL / 错误处理
   KoofrClient.php        Koofr API 封装
   VirusTotalClient.php   VT API + 速率限制
+  SupabaseClient.php     Supabase REST API 封装（PostgREST）
 ```
 
 ## 全局错误处理
@@ -309,7 +351,7 @@ while (attempts < 40) {
 }
 ```
 
-`file_path` 参数一并传给后端，后端在扫描完成时更新 `.scan-status.json`，这样文件管理器的下一次刷新就能看到最新状态。
+`file_path` 参数一并传给后端，后端在扫描完成时通过 `upsert` 更新 Supabase，这样文件管理器的下一次刷新就能看到最新状态。
 
 ---
 
@@ -327,9 +369,11 @@ PHP 8.0 起 cURL 句柄在变量离开作用域时自动关闭，`curl_close()` 
 
 虽然 `set_error_handler` 默认不捕获弃用警告，但 Vercel 的 PHP 内置服务器可能会输出 HTML 格式的弃用信息，污染 JSON 响应。直接删除 `curl_close()` 调用即可。
 
-## `.scan-status.json` 并发写入
+## 从 JSON 文件迁移到 Supabase
 
-理论上多个用户同时上传可能导致 `.scan-status.json` 的读-改-写冲突（后写入的覆盖先写入的）。对于个人网盘（通常只有一个人使用），这个竞态条件发生的概率极低。如果需要更可靠的方案，可以用 Koofr 的文件标签（tags）功能为每个文件单独存储状态。
+最初将扫描状态存在 Koofr 的 `.scan-status.json` 中。问题是读-改-写不是原子操作——PHP 先下载 JSON、解码、修改、再上传回 Koofr。如果两个请求同时执行，后写入的会覆盖先写入的。
+
+改为 Supabase 后，`upsert` 是单次 HTTP 请求，数据库层面保证原子性。PHP 只需调用 PostgREST REST API，无需引入 SDK 或管理连接池。
 
 ---
 
@@ -345,6 +389,8 @@ PHP 8.0 起 cURL 句柄在变量离开作用域时自动关闭，`curl_close()` 
 | `KOOFR_APP_PASSWORD` | Koofr 应用密码（Settings → Security → API） |
 | `KOOFR_MOUNT_ID` | 可选，默认自动使用第一个存储挂载 |
 | `VT_API_KEY` | VirusTotal API Key |
+| `PUBLIC_SUPABASE_URL` | Supabase 项目 URL |
+| `PUBLIC_SUPABASE_ANON_KEY` | Supabase anon public key |
 
 ## 部署命令
 
@@ -367,7 +413,9 @@ vercel deploy
   "configured": {
     "koofr_email": true,
     "koofr_app_password": true,
-    "vt_api_key": true
+    "vt_api_key": true,
+    "supabase_url": true,
+    "supabase_key": true
   }
 }
 ```
