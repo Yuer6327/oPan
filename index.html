@@ -692,15 +692,42 @@
     while (activeUploads < MAX_CONCURRENT_UPLOADS && pending.length > 0) { processFile(pending.shift().id); }
   }
 
+  const DIRECT_UPLOAD_THRESHOLD = 4 * 1024 * 1024; // 4MB — below Vercel Hobby 4.5MB limit
+
   async function processFile(id) {
     const f = files.get(id);
     if (!f || f.status !== 'waiting') return;
     activeUploads++;
     try {
       f.status = 'uploading'; f.progress = 0; renderFileList();
-      const formData = new FormData(); formData.append('file', f.file);
-      const uploadResult = await uploadWithProgress(f, formData);
-      f.filePath = uploadResult.file_path;
+
+      if (f.size > DIRECT_UPLOAD_THRESHOLD) {
+        // Large file: get upload token, then PUT directly to Koofr (bypass Vercel)
+        if (!adminKey) {
+          // Prompt admin login for large file upload
+          toast('大文件需要管理员验证，请输入密码', 'info');
+          await new Promise((resolve, reject) => {
+            window._largeFileAuthResolve = resolve;
+            window._largeFileAuthReject = reject;
+            openAdminLogin();
+          });
+        }
+        const tokenResp = await fetch(`/api/upload-token?filename=${encodeURIComponent(f.name)}`, {
+          headers: { 'X-Admin-Key': adminKey }
+        });
+        const token = await tokenResp.json();
+        if (!tokenResp.ok || !token.ok) throw new Error(token.error || '获取上传令牌失败');
+        f.filePath = token.file_path;
+        await uploadDirectToKoofr(f, token);
+        // Register in Supabase
+        await fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: f.filePath, filename: f.name, size: f.size }) }).catch(() => {});
+      } else {
+        // Small file: upload through Vercel backend
+        const formData = new FormData(); formData.append('file', f.file);
+        const uploadResult = await uploadWithProgress(f, formData);
+        f.filePath = uploadResult.file_path;
+      }
 
       if (f.size > VT_SIZE_LIMIT) {
         f.status = 'skipped'; f.message = '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。';
@@ -715,8 +742,26 @@
       renderFileList(); toast(`"${truncate(f.name, 20)}" 失败: ${err.message}`, 'error');
     } finally {
       activeUploads--; renderFileList(); processQueue();
-      loadFileList(); // Refresh file manager after each upload
+      loadFileList();
     }
+  }
+
+  // Direct upload to Koofr (for files > 4MB, bypasses Vercel body limit)
+  function uploadDirectToKoofr(f, token) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', token.upload_url, true);
+      xhr.setRequestHeader('Authorization', token.auth_header);
+      xhr.upload.onprogress = e => { if (e.lengthComputable) { f.progress = Math.round((e.loaded / e.total) * 100); const bar = $fileList.querySelector(`[data-id="${f.id}"] .progress-fill`); if (bar) bar.style.width = f.progress + '%'; } };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { f.progress = 100; resolve(); }
+        else { reject(new Error(`Koofr 上传失败 (HTTP ${xhr.status})`)); }
+      };
+      xhr.onerror = () => reject(new Error('网络错误，直传中断'));
+      xhr.ontimeout = () => reject(new Error('直传超时'));
+      xhr.timeout = 600000;
+      xhr.send(f.file);
+    });
   }
 
   function uploadWithProgress(f, formData) {
@@ -798,7 +843,11 @@
     document.getElementById('adminLoginError').style.display = 'none';
     setTimeout(() => document.getElementById('adminPasswordInput').focus(), 100);
   }
-  function closeAdminLogin() { document.getElementById('adminLoginModal').classList.remove('active'); }
+  function closeAdminLogin() {
+    document.getElementById('adminLoginModal').classList.remove('active');
+    // Reject pending large file upload auth
+    if (window._largeFileAuthReject) { window._largeFileAuthReject(new Error('需要管理员验证')); window._largeFileAuthResolve = null; window._largeFileAuthReject = null; }
+  }
 
   async function verifyAdmin() {
     const pw = document.getElementById('adminPasswordInput').value;
@@ -810,6 +859,8 @@
         adminKey = pw;
         sessionStorage.setItem('admin_key', pw);
         closeAdminLogin();
+        // Resolve pending large file upload auth
+        if (window._largeFileAuthResolve) { window._largeFileAuthResolve(); window._largeFileAuthResolve = null; window._largeFileAuthReject = null; }
         openAdminPanel();
       } else {
         const err = document.getElementById('adminLoginError');
