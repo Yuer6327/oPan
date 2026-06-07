@@ -104,15 +104,50 @@ try {
                 jsonError('Rename failed', 502, 'RENAME_FAILED');
             }
 
-            // Update Supabase path reference
+            // Migrate Supabase record to new path (preserve status & report_url)
             try {
-                $db = new SupabaseClient();
-                httpRequest('DELETE',
-                    getenv('PUBLIC_SUPABASE_URL') . '/rest/v1/scan_status?file_path=eq.' . rawurlencode($path),
+                $supabaseUrl = getenv('PUBLIC_SUPABASE_URL');
+                $supabaseKey = getenv('PUBLIC_SUPABASE_ANON_KEY');
+
+                // Read old record
+                $oldRes = httpRequest('GET',
+                    "{$supabaseUrl}/rest/v1/scan_status?file_path=eq." . rawurlencode($path),
                     [
                         'headers' => [
-                            'apikey: ' . getenv('PUBLIC_SUPABASE_ANON_KEY'),
-                            'Authorization: Bearer ' . getenv('PUBLIC_SUPABASE_ANON_KEY'),
+                            "apikey: {$supabaseKey}",
+                            "Authorization: Bearer {$supabaseKey}",
+                            'Accept: application/json',
+                        ],
+                        'timeout' => 10,
+                    ]
+                );
+                $oldRows = is_array($oldRes['body']) ? $oldRes['body'] : [];
+                $oldRow = $oldRows[0] ?? null;
+
+                if ($oldRow) {
+                    // Insert new record with updated path
+                    $newRow = $oldRow;
+                    $newRow['file_path'] = $newPath;
+                    unset($newRow['created_at']);
+                    httpRequest('POST', "{$supabaseUrl}/rest/v1/scan_status", [
+                        'headers' => [
+                            "apikey: {$supabaseKey}",
+                            "Authorization: Bearer {$supabaseKey}",
+                            'Content-Type: application/json',
+                            'Prefer: resolution=merge-duplicates',
+                        ],
+                        'body'    => json_encode($newRow),
+                        'timeout' => 10,
+                    ]);
+                }
+
+                // Delete old record
+                httpRequest('DELETE',
+                    "{$supabaseUrl}/rest/v1/scan_status?file_path=eq." . rawurlencode($path),
+                    [
+                        'headers' => [
+                            "apikey: {$supabaseKey}",
+                            "Authorization: Bearer {$supabaseKey}",
                         ],
                         'timeout' => 10,
                     ]
@@ -135,12 +170,36 @@ try {
                 jsonError('Missing path or invalid status', 400, 'INVALID_PARAM');
             }
 
-            $db = new SupabaseClient();
-            $db->upsert('scan_status', [
-                'file_path' => $path,
-                'status'    => $status,
-                'scan_time' => date('c'),
-            ]);
+            // Use Supabase PATCH to only update status field (preserve report_url etc.)
+            $supabaseUrl = getenv('PUBLIC_SUPABASE_URL');
+            $supabaseKey = getenv('PUBLIC_SUPABASE_ANON_KEY');
+            $res = httpRequest('PATCH',
+                "{$supabaseUrl}/rest/v1/scan_status?file_path=eq." . rawurlencode($path),
+                [
+                    'headers' => [
+                        "apikey: {$supabaseKey}",
+                        "Authorization: Bearer {$supabaseKey}",
+                        'Content-Type: application/json',
+                        'Prefer: resolution=merge-duplicates,return=representation',
+                    ],
+                    'body'    => json_encode([
+                        'status'    => $status,
+                        'scan_time' => date('c'),
+                    ]),
+                    'timeout' => 10,
+                ]
+            );
+
+            // If no row exists, upsert one
+            $body = is_array($res['body']) ? $res['body'] : [];
+            if (empty($body) || ($res['status'] < 200 || $res['status'] >= 300)) {
+                $db = new SupabaseClient();
+                $db->upsert('scan_status', [
+                    'file_path' => $path,
+                    'status'    => $status,
+                    'scan_time' => date('c'),
+                ]);
+            }
 
             jsonOk(['message' => "状态已更新为 {$status}"]);
 
