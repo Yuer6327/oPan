@@ -554,23 +554,27 @@
   }
 
   // ── Preview ───────────────────────────────────────────────────────────
-  // Koofr credentials cache for direct preview/download
+  // Koofr access: try Worker proxy first, fallback to direct with credentials
+  let koofrViaWorker = null; // null = unknown, true/false = tested
   let koofrCreds = null;
-  async function getKoofrCreds() {
-    if (koofrCreds) return koofrCreds;
-    const r = await fetch('/api/koofr-creds');
-    const d = await r.json();
-    if (!r.ok || !d.ok) throw new Error(d.error || '获取凭据失败');
-    koofrCreds = d;
-    return d;
-  }
-  function koofrContentUrl(creds, path) {
-    return `${creds.base_url}?path=${encodeURIComponent(path)}`;
-  }
+
   async function koofrFetch(path) {
-    const creds = await getKoofrCreds();
-    return fetch(koofrContentUrl(creds, path), {
-      headers: { 'Authorization': creds.auth_header }
+    // Try Worker proxy first (no auth needed, CF handles it)
+    if (koofrViaWorker !== false) {
+      try {
+        const resp = await fetch(`/koofr/get?path=${encodeURIComponent(path)}`, { signal: AbortSignal.timeout(8000) });
+        if (resp.ok) { koofrViaWorker = true; return resp; }
+      } catch { koofrViaWorker = false; }
+    }
+    // Fallback: direct Koofr with credentials
+    if (!koofrCreds) {
+      const r = await fetch('/api/koofr-creds');
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || '获取凭据失败');
+      koofrCreds = d;
+    }
+    return fetch(`${koofrCreds.base_url}?path=${encodeURIComponent(path)}`, {
+      headers: { 'Authorization': koofrCreds.auth_header }
     });
   }
 
