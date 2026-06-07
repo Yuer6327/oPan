@@ -108,7 +108,7 @@
     .scan-panel { background: oklch(0.16 0 0); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
     h2.section-title { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; color: oklch(0.85 0 0); padding-top: 20px; margin-top: 24px; margin-bottom: 16px; border-top: 1px dashed rgba(255,255,255,0.08); }
     .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.1); border-top-color: oklch(0.6 0 0); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
-    .gradient-text { background: linear-gradient(135deg, oklch(0.9 0 0), oklch(0.7 0 0)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .gradient-text { color: oklch(0.75 0 0); }
     .container-app { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
     a.vt-link { color: oklch(0.7 0 0); text-decoration: none; font-size: 12px; transition: color 0.3s var(--ease); }
     a.vt-link:hover { color: oklch(0.9 0 0); text-decoration: underline; }
@@ -168,8 +168,14 @@
     .modal-close { background: none; border: none; color: oklch(0.5 0 0); cursor: pointer; font-size: 20px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
     .modal-close:hover { background: oklch(0.25 0 0); color: oklch(0.9 0 0); }
     .modal-body { padding: 20px; overflow: auto; flex: 1; }
-    .modal-body img { max-width: 100%; max-height: 70vh; border-radius: 8px; object-fit: contain; display: block; margin: 0 auto; }
-    .modal-body pre { background: oklch(0.135 0 0); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.6; overflow: auto; max-height: 65vh; color: oklch(0.85 0 0); white-space: pre-wrap; word-break: break-all; }
+    .modal-body img { max-width: 100%; max-height: 70vh; border-radius: 8px; object-fit: contain; display: block; margin: 0 auto; opacity: 0; transition: opacity 0.3s var(--ease); }
+    .modal-body img.loaded { opacity: 1; }
+    .modal-body pre { background: oklch(0.135 0 0); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.6; overflow: auto; max-height: 65vh; color: oklch(0.85 0 0); white-space: pre-wrap; word-break: break-all; opacity: 0; animation: fadeIn 0.3s var(--ease) forwards; }
+
+    .preview-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 20px; color: oklch(0.5 0 0); font-size: 13px; }
+    .preview-loader .loader-ring { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.06); border-top-color: oklch(0.6 0 0); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .preview-skeleton { width: 100%; max-width: 400px; height: 240px; border-radius: 8px; background: oklch(0.16 0 0); animation: skeleton-pulse 1.5s ease-in-out infinite; }
+    @keyframes skeleton-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
     .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
 
     .checkbox-custom {
@@ -436,13 +442,18 @@
     $previewTitle.textContent = name;
 
     if (imgExts.includes(ext)) {
-      $previewBody.innerHTML = `<img src="/api/preview?path=${encodeURIComponent(path)}" alt="${escapeHtml(name)}" loading="lazy">`;
+      $previewBody.innerHTML = `<div class="preview-loader"><div class="preview-skeleton"></div><div class="loader-ring"></div><span>加载中...</span></div>`;
+      const img = new Image();
+      img.alt = name;
+      img.onload = () => { $previewBody.innerHTML = ''; $previewBody.appendChild(img); requestAnimationFrame(() => img.classList.add('loaded')); };
+      img.onerror = () => { $previewBody.innerHTML = '<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">图片加载失败</p>'; };
+      img.src = `/api/preview?path=${encodeURIComponent(path)}`;
     } else {
-      $previewBody.innerHTML = '<div style="text-align:center;padding:40px;color:oklch(0.5 0 0);"><span class="spinner" style="width:24px;height:24px;"></span></div>';
+      $previewBody.innerHTML = '<div class="preview-loader"><div class="loader-ring"></div><span>加载中...</span></div>';
       fetch(`/api/preview?path=${encodeURIComponent(path)}`)
         .then(r => r.ok ? r.text() : Promise.reject('加载失败'))
         .then(text => { $previewBody.innerHTML = `<pre>${escapeHtml(text)}</pre>`; })
-        .catch(err => { $previewBody.innerHTML = `<p style="color:oklch(0.65 0.1 25);">${escapeHtml(String(err))}</p>`; });
+        .catch(err => { $previewBody.innerHTML = `<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">${escapeHtml(String(err))}</p>`; });
     }
     $previewModal.classList.add('active');
   };
