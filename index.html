@@ -554,6 +554,26 @@
   }
 
   // ── Preview ───────────────────────────────────────────────────────────
+  // Koofr credentials cache for direct preview/download
+  let koofrCreds = null;
+  async function getKoofrCreds() {
+    if (koofrCreds) return koofrCreds;
+    const r = await fetch('/api/koofr-creds');
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || '获取凭据失败');
+    koofrCreds = d;
+    return d;
+  }
+  function koofrContentUrl(creds, path) {
+    return `${creds.base_url}?path=${encodeURIComponent(path)}`;
+  }
+  async function koofrFetch(path) {
+    const creds = await getKoofrCreds();
+    return fetch(koofrContentUrl(creds, path), {
+      headers: { 'Authorization': creds.auth_header }
+    });
+  }
+
   window.openPreview = (path, name) => {
     const ext = (name.split('.').pop() || '').toLowerCase();
     const imgExts = ['jpg','jpeg','png','gif','webp','svg','bmp'];
@@ -561,17 +581,23 @@
 
     if (imgExts.includes(ext)) {
       $previewBody.innerHTML = `<div class="preview-loader"><div class="preview-skeleton"></div><div class="loader-ring"></div><span>加载中...</span></div>`;
-      const img = new Image();
-      img.alt = name;
-      img.onload = () => { $previewBody.innerHTML = ''; $previewBody.appendChild(img); requestAnimationFrame(() => img.classList.add('loaded')); };
-      img.onerror = () => { $previewBody.innerHTML = '<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">图片加载失败</p>'; };
-      img.src = `/api/preview?path=${encodeURIComponent(path)}`;
+      koofrFetch(path)
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.alt = name;
+          img.onload = () => { $previewBody.innerHTML = ''; $previewBody.appendChild(img); requestAnimationFrame(() => img.classList.add('loaded')); };
+          img.onerror = () => { $previewBody.innerHTML = '<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">图片加载失败</p>'; };
+          img.src = url;
+        })
+        .catch(err => { $previewBody.innerHTML = `<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">图片加载失败: ${escapeHtml(String(err))}</p>`; });
     } else {
       $previewBody.innerHTML = '<div class="preview-loader"><div class="loader-ring"></div><span>加载中...</span></div>';
-      fetch(`/api/preview?path=${encodeURIComponent(path)}`)
-        .then(r => r.ok ? r.text() : Promise.reject('加载失败'))
+      koofrFetch(path)
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
         .then(text => { $previewBody.innerHTML = `<pre>${escapeHtml(text)}</pre>`; })
-        .catch(err => { $previewBody.innerHTML = `<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">${escapeHtml(String(err))}</p>`; });
+        .catch(err => { $previewBody.innerHTML = `<p style="color:oklch(0.65 0.1 25);text-align:center;padding:40px;">加载失败: ${escapeHtml(String(err))}</p>`; });
     }
     $previewModal.classList.add('active');
   };
@@ -579,13 +605,22 @@
   window.closePreview = () => { $previewModal.classList.remove('active'); $previewBody.innerHTML = ''; };
 
   // ── Download ──────────────────────────────────────────────────────────
-  window.downloadDirect = (path) => {
-    const a = document.createElement('a');
-    a.href = `/api/download?path=${encodeURIComponent(path)}`;
-    a.download = '';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+  window.downloadDirect = async (path) => {
+    try {
+      const resp = await koofrFetch(path);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = path.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast('下载失败: ' + err.message, 'error');
+    }
   };
 
   window.downloadWithWarning = (path, name, status) => {
@@ -936,14 +971,7 @@
   function adminBatchDownload() {
     const paths = getSelectedPaths();
     if (!paths.length) { toast('请先选择文件', 'warning'); return; }
-    paths.forEach(p => {
-      const a = document.createElement('a');
-      a.href = `/api/download?path=${encodeURIComponent(p)}`;
-      a.download = '';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    });
+    paths.forEach(p => downloadDirect(p));
     toast(`开始下载 ${paths.length} 个文件`, 'info');
   }
 
