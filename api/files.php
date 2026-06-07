@@ -6,6 +6,7 @@ ob_start();
 
 require_once __DIR__ . '/../lib/Helpers.php';
 require_once __DIR__ . '/../lib/KoofrClient.php';
+require_once __DIR__ . '/../lib/SupabaseClient.php';
 
 try {
     cors();
@@ -19,17 +20,25 @@ try {
     // List files in /oPan
     $rawFiles = $koofr->listFiles('/oPan');
 
-    // Read scan status
-    $statusData = $koofr->getStatusFile();
-    $statusMap  = $statusData['files'] ?? [];
+    // Read scan status from Supabase
+    $statusMap = [];
+    try {
+        $db = new SupabaseClient();
+        $rows = $db->select('scan_status', ['select' => '*']);
+        foreach ($rows as $row) {
+            $statusMap[$row['file_path']] = $row;
+        }
+    } catch (Throwable) {
+        // Non-fatal: show files without scan status
+    }
 
     $files = [];
     foreach ($rawFiles as $f) {
         $name = $f['name'] ?? '';
         $type = $f['type'] ?? '';
 
-        // Skip directories and the status file itself
-        if ($type !== 'file' || $name === '.scan-status.json') {
+        // Skip directories
+        if ($type !== 'file') {
             continue;
         }
 
@@ -43,7 +52,7 @@ try {
             $originalName = $m[1];
         }
 
-        // Get scan status from status file
+        // Get scan status from Supabase
         $scanInfo = $statusMap[$filePath] ?? null;
         $status   = 'unknown';
         $reportUrl = null;
@@ -53,24 +62,24 @@ try {
         if ($scanInfo) {
             $status    = $scanInfo['status'] ?? 'unknown';
             $reportUrl = $scanInfo['report_url'] ?? null;
-            $malicious = $scanInfo['malicious'] ?? 0;
-            $total     = $scanInfo['total'] ?? 0;
+            $malicious = (int)($scanInfo['malicious'] ?? 0);
+            $total     = (int)($scanInfo['total'] ?? 0);
         } else {
             // If file was uploaded recently (<15min) and no status, assume scanning
             $ageSeconds = time() - (int)($modified / 1000);
-            $status = ($ageSeconds < 900) ? 'scanning' : 'error';
+            $status = ($ageSeconds < 900) ? 'scanning' : 'unknown';
         }
 
         $files[] = [
-            'path'      => $filePath,
-            'name'      => $originalName,
-            'stored'    => $name,
-            'size'      => $size,
-            'modified'  => $modified,
-            'status'    => $status,
-            'report_url'=> $reportUrl,
-            'malicious' => $malicious,
-            'total'     => $total,
+            'path'       => $filePath,
+            'name'       => $originalName,
+            'stored'     => $name,
+            'size'       => $size,
+            'modified'   => $modified,
+            'status'     => $status,
+            'report_url' => $reportUrl,
+            'malicious'  => $malicious,
+            'total'      => $total,
         ];
     }
 

@@ -6,6 +6,7 @@ ob_start();
 
 require_once __DIR__ . '/../lib/Helpers.php';
 require_once __DIR__ . '/../lib/KoofrClient.php';
+require_once __DIR__ . '/../lib/SupabaseClient.php';
 
 try {
     cors();
@@ -14,7 +15,6 @@ try {
         jsonError('Method not allowed. Use POST with multipart/form-data.', 405, 'METHOD_NOT_ALLOWED');
     }
 
-    // ── Get uploaded file from multipart form ─────────────────────────
     if (empty($_FILES['file'])) {
         jsonError('No file uploaded. Send as multipart/form-data with field name "file".', 400, 'NO_FILE');
     }
@@ -46,29 +46,30 @@ try {
         jsonError('File too large (max 10 GB)', 413, 'FILE_TOO_LARGE');
     }
 
-    // ── Upload to Koofr via content API ───────────────────────────────
-    $koofr   = new KoofrClient();
-    $folder   = '/oPan';
-    $uniqId   = time() . '_' . bin2hex(random_bytes(4));
+    // ── Upload to Koofr ───────────────────────────────────────────────
+    $koofr     = new KoofrClient();
+    $folder    = '/oPan';
+    $uniqId    = time() . '_' . bin2hex(random_bytes(4));
     $storedName = "{$uniqId}_{$filename}";
     $destPath   = "{$folder}/{$storedName}";
 
     $koofr->ensureFolder($folder);
     $koofr->uploadFile($destPath, $tmpPath, $storedName);
 
-    // Mark file as "scanning" in status file
+    // ── Write scanning status to Supabase ─────────────────────────────
     try {
-        $statusData = $koofr->getStatusFile();
-        $statusData['files'][$destPath] = [
-            'status'     => 'scanning',
-            'malicious'  => 0,
-            'total'      => 0,
-            'report_url' => null,
-            'scan_time'  => date('c'),
-        ];
-        $koofr->updateStatusFile($statusData);
+        $db = new SupabaseClient();
+        $db->upsert('scan_status', [
+            'file_path'   => $destPath,
+            'original_name' => $filename,
+            'size'        => $size,
+            'status'      => 'scanning',
+            'malicious'   => 0,
+            'total'       => 0,
+            'report_url'  => null,
+        ]);
     } catch (Throwable) {
-        // Non-fatal: upload succeeded even if status update failed
+        // Non-fatal: upload succeeded even if status write failed
     }
 
     jsonOk([

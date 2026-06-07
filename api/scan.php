@@ -7,6 +7,7 @@ ob_start();
 require_once __DIR__ . '/../lib/Helpers.php';
 require_once __DIR__ . '/../lib/KoofrClient.php';
 require_once __DIR__ . '/../lib/VirusTotalClient.php';
+require_once __DIR__ . '/../lib/SupabaseClient.php';
 
 try {
     cors();
@@ -40,19 +41,17 @@ try {
                 'report_url' => $result['report_url'],
             ];
 
-            // Update status file if file_path provided
+            // Update scan status in Supabase
             if ($filePath !== '') {
                 try {
-                    $koofr = new KoofrClient();
-                    $statusData = $koofr->getStatusFile();
-                    $statusData['files'][$filePath] = [
+                    $db = new SupabaseClient();
+                    $db->update('scan_status', [
                         'status'     => $isClean ? 'clean' : 'danger',
                         'malicious'  => $s['malicious'],
                         'total'      => $s['total'],
                         'report_url' => $result['report_url'],
                         'scan_time'  => date('c'),
-                    ];
-                    $koofr->updateStatusFile($statusData);
+                    ], 'file_path=eq.' . rawurlencode($filePath));
                 } catch (Throwable) {
                     // Non-fatal
                 }
@@ -78,19 +77,12 @@ try {
 
     // VT file upload size limit (32 MB for free accounts)
     if ($size > 32 * 1024 * 1024) {
-        // Update status: skipped (no scan possible)
         try {
-            $koofr = new KoofrClient();
-            $statusData = $koofr->getStatusFile();
-            $statusData['files'][$filePath] = [
-                'status'     => 'error',
-                'malicious'  => 0,
-                'total'      => 0,
-                'report_url' => null,
-                'scan_time'  => date('c'),
-                'error'      => 'File exceeds 32MB VT limit',
-            ];
-            $koofr->updateStatusFile($statusData);
+            $db = new SupabaseClient();
+            $db->update('scan_status', [
+                'status'    => 'error',
+                'scan_time' => date('c'),
+            ], 'file_path=eq.' . rawurlencode($filePath));
         } catch (Throwable) {}
 
         jsonOk([
@@ -105,18 +97,12 @@ try {
     $fileContent = $koofr->downloadFile($filePath);
 
     if ($fileContent === null) {
-        // Mark as error
         try {
-            $statusData = $koofr->getStatusFile();
-            $statusData['files'][$filePath] = [
-                'status'     => 'error',
-                'malicious'  => 0,
-                'total'      => 0,
-                'report_url' => null,
-                'scan_time'  => date('c'),
-                'error'      => 'Failed to download for scanning',
-            ];
-            $koofr->updateStatusFile($statusData);
+            $db = new SupabaseClient();
+            $db->update('scan_status', [
+                'status'    => 'error',
+                'scan_time' => date('c'),
+            ], 'file_path=eq.' . rawurlencode($filePath));
         } catch (Throwable) {}
 
         jsonError('Failed to download file from storage for scanning', 502, 'DOWNLOAD_FAILED');

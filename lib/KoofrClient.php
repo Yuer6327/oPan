@@ -149,42 +149,6 @@ final class KoofrClient
     }
 
     /**
-     * Read the .scan-status.json file from /oPan/.
-     * Returns the parsed JSON or empty structure.
-     */
-    public function getStatusFile(): array
-    {
-        $content = $this->downloadFile('/oPan/.scan-status.json');
-        if ($content === null) {
-            return ['files' => []];
-        }
-        $data = json_decode($content, true);
-        return (is_array($data) && isset($data['files'])) ? $data : ['files' => []];
-    }
-
-    /**
-     * Write the .scan-status.json file to /oPan/.
-     */
-    public function updateStatusFile(array $statusData): void
-    {
-        $tmpFile = tempnam(sys_get_temp_dir(), 'status_');
-        file_put_contents($tmpFile, json_encode($statusData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-        $url = self::BASE . "/content/api/v2/mounts/{$this->mountId}/files/put"
-             . '?path=/oPan&filename=.scan-status.json&info=true&overwrite=true';
-
-        httpRequest('POST', $url, [
-            'headers'     => ["Authorization: {$this->auth}"],
-            'form_fields' => [
-                'file' => new CURLFile($tmpFile, 'application/json', '.scan-status.json'),
-            ],
-            'timeout' => 30,
-        ]);
-
-        @unlink($tmpFile);
-    }
-
-    /**
      * Delete a file from Koofr.
      */
     public function deleteFile(string $path): bool

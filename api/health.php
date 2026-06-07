@@ -13,6 +13,8 @@ try {
         'koofr_email'        => !empty(getenv('KOOFR_EMAIL')),
         'koofr_app_password' => !empty(getenv('KOOFR_APP_PASSWORD')),
         'vt_api_key'         => !empty(getenv('VT_API_KEY')),
+        'supabase_url'       => !empty(getenv('PUBLIC_SUPABASE_URL')),
+        'supabase_key'       => !empty(getenv('PUBLIC_SUPABASE_ANON_KEY')),
     ];
 
     $allOk = !in_array(false, $checks, true);
@@ -21,7 +23,7 @@ try {
         'status'     => $allOk ? 'healthy' : 'degraded',
         'configured' => $checks,
         'timestamp'  => date('c'),
-        'version'    => '1.0.0',
+        'version'    => '2.0.0',
     ]);
 
 } catch (Throwable $e) {
