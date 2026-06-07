@@ -13,14 +13,6 @@ try {
         jsonError('Method not allowed', 405, 'METHOD_NOT_ALLOWED');
     }
 
-    // Require admin password (from header or query param)
-    $headers = function_exists('getallheaders') ? getallheaders() : [];
-    $pw = $headers['X-Admin-Key'] ?? $headers['x-admin-key'] ?? $_GET['password'] ?? '';
-    $adminKey = getenv('ADMIN_KEY');
-    if (!$adminKey || !hash_equals($adminKey, $pw)) {
-        jsonError('Unauthorized', 401, 'UNAUTHORIZED');
-    }
-
     $filename = sanitizeFilename($_GET['filename'] ?? '');
     if ($filename === '') {
         jsonError('Missing filename', 400, 'MISSING_PARAM');
