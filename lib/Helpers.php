@@ -102,11 +102,12 @@ function env(string $key, ?string $default = null): string
 // ── Filename sanitisation ───────────────────────────────────────────────────
 function sanitizeFilename(string $name): string
 {
-    // basename() can return null for multibyte chars on some PHP builds
+    // Strip path traversal first, then extract basename
+    $name = str_replace(["\\", '/'], '_', $name);
     $name = basename($name);
-    if (!is_string($name) || $name === '') $name = 'unnamed';
+    if (!is_string($name) || $name === '' || $name === '.') $name = 'unnamed';
     $name = str_replace(["\0", "\r", "\n"], '', $name);
-    // Allow CJK characters, word chars, dots, spaces, parens, brackets
+    // Allow Unicode letters/numbers, word chars, dots, spaces, parens, brackets
     $name = preg_replace('/[^\p{L}\p{N}\w\-. ()\[\]]/u', '_', $name);
     $name = preg_replace('/[_ ]{2,}/', '_', trim($name));
     return $name ?: 'unnamed';
