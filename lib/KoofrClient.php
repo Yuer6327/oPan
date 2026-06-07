@@ -164,6 +164,27 @@ final class KoofrClient
         return $res['status'] >= 200 && $res['status'] < 300;
     }
 
+    /**
+     * Rename a file in Koofr.
+     */
+    public function renameFile(string $path, string $newName): bool
+    {
+        $url = self::BASE . "/api/v2/mounts/{$this->mountId}/files/rename"
+             . '?path=' . rawurlencode($path);
+
+        $res = httpRequest('PUT', $url, [
+            'headers' => [
+                "Authorization: {$this->auth}",
+                'Accept: application/json',
+                'Content-Type: application/json',
+            ],
+            'body'    => json_encode(['name' => $newName]),
+            'timeout' => 15,
+        ]);
+
+        return $res['status'] >= 200 && $res['status'] < 300;
+    }
+
     // ── Private helpers ─────────────────────────────────────────────────
 
     private function resolveDefaultMount(): string

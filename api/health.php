@@ -15,6 +15,7 @@ try {
         'vt_api_key'         => !empty(getenv('VT_API_KEY')),
         'supabase_url'       => !empty(getenv('PUBLIC_SUPABASE_URL')),
         'supabase_key'       => !empty(getenv('PUBLIC_SUPABASE_ANON_KEY')),
+        'admin_key'          => !empty(getenv('ADMIN_KEY')),
     ];
 
     $allOk = !in_array(false, $checks, true);
