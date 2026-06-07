@@ -267,7 +267,7 @@
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0 0)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
         <p style="font-size:16px;font-weight:600;color:oklch(0.85 0 0);margin:0 0 6px;">拖拽文件到此处，或点击选择</p>
-        <p style="font-size:13px;color:oklch(0.4 0 0);margin:0;">支持任意类型文件 · ≤32MB 自动病毒扫描</p>
+        <p style="font-size:13px;color:oklch(0.4 0 0);margin:0;">支持任意类型文件 · ≤32MB 自动病毒扫描 · 需管理员登录</p>
       </div>
     </div>
   </section>
@@ -692,8 +692,6 @@
     while (activeUploads < MAX_CONCURRENT_UPLOADS && pending.length > 0) { processFile(pending.shift().id); }
   }
 
-  const DIRECT_UPLOAD_THRESHOLD = 4 * 1024 * 1024; // 4MB — below Vercel Hobby 4.5MB limit
-
   async function processFile(id) {
     const f = files.get(id);
     if (!f || f.status !== 'waiting') return;
@@ -701,33 +699,25 @@
     try {
       f.status = 'uploading'; f.progress = 0; renderFileList();
 
-      if (f.size > DIRECT_UPLOAD_THRESHOLD) {
-        // Large file: get upload token, then PUT directly to Koofr (bypass Vercel)
-        if (!adminKey) {
-          // Prompt admin login for large file upload
-          toast('大文件需要管理员验证，请输入密码', 'info');
-          await new Promise((resolve, reject) => {
-            window._largeFileAuthResolve = resolve;
-            window._largeFileAuthReject = reject;
-            openAdminLogin();
-          });
-        }
-        const tokenResp = await fetch(`/api/upload-token?filename=${encodeURIComponent(f.name)}`, {
-          headers: { 'X-Admin-Key': adminKey }
+      // Get upload token, then upload directly to Koofr (bypasses Vercel body limit)
+      if (!adminKey) {
+        toast('请先登录管理员以上传文件', 'info');
+        await new Promise((resolve, reject) => {
+          window._largeFileAuthResolve = resolve;
+          window._largeFileAuthReject = reject;
+          openAdminLogin();
         });
-        const token = await tokenResp.json();
-        if (!tokenResp.ok || !token.ok) throw new Error(token.error || '获取上传令牌失败');
-        f.filePath = token.file_path;
-        await uploadDirectToKoofr(f, token);
-        // Register in Supabase
-        await fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_path: f.filePath, filename: f.name, size: f.size }) }).catch(() => {});
-      } else {
-        // Small file: upload through Vercel backend
-        const formData = new FormData(); formData.append('file', f.file);
-        const uploadResult = await uploadWithProgress(f, formData);
-        f.filePath = uploadResult.file_path;
       }
+      const tokenResp = await fetch(`/api/upload-token?filename=${encodeURIComponent(f.name)}`, {
+        headers: { 'X-Admin-Key': adminKey }
+      });
+      const token = await tokenResp.json();
+      if (!tokenResp.ok || !token.ok) throw new Error(token.error || '获取上传令牌失败');
+      f.filePath = token.file_path;
+      await uploadDirectToKoofr(f, token);
+      // Register in Supabase
+      await fetch('/api/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: f.filePath, filename: f.name, size: f.size }) }).catch(() => {});
 
       if (f.size > VT_SIZE_LIMIT) {
         f.status = 'skipped'; f.message = '文件大小超过 32MB，无法进行 VirusTotal 安全扫描。';
